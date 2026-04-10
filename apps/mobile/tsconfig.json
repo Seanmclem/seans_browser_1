@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["react", "react-native"],
+    "baseUrl": ".",
+    "paths": {
+      "@seans-browser/browser-core": ["../../packages/browser-core/src/index.ts"],
+      "@seans-browser/browser-core/*": ["../../packages/browser-core/src/*"]
+    }
+  },
+  "include": ["App.tsx", "src/**/*"]
+}
+

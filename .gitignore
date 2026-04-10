@@ -1,0 +1,11 @@
+node_modules
+.DS_Store
+dist
+.expo
+.expo-shared
+coverage
+apps/desktop/dist
+apps/mobile/dist
+apps/mobile/.expo
+*.log
+

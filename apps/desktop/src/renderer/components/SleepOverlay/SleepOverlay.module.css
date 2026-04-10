@@ -1,0 +1,28 @@
+.overlay {
+  position: absolute;
+  inset: calc(100% + 8px) auto auto 0;
+  width: 220px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 20px 36px rgba(2, 6, 23, 0.34);
+  z-index: 20;
+}
+
+.snapshot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.badge {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #dbeafe;
+}
+

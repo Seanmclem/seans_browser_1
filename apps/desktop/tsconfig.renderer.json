@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "outDir": "dist/renderer",
+    "baseUrl": ".",
+    "paths": {
+      "@seans-browser/browser-core": ["../../packages/browser-core/src/index.ts"],
+      "@seans-browser/browser-core/*": ["../../packages/browser-core/src/*"]
+    }
+  },
+  "include": ["src/renderer/**/*", "src/shared/**/*"]
+}
+

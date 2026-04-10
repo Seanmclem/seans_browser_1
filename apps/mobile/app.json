@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "SeanBrowser",
+    "slug": "sean-browser",
+    "scheme": "seanbrowser",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#071123"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.seanclements.browser"
+    },
+    "android": {
+      "package": "com.seanclements.browser"
+    },
+    "plugins": ["expo-dev-client"]
+  }
+}

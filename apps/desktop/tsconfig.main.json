@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "types": ["node", "electron"],
+    "outDir": "dist/main",
+    "baseUrl": ".",
+    "paths": {
+      "@seans-browser/browser-core": ["../../packages/browser-core/src/index.ts"],
+      "@seans-browser/browser-core/*": ["../../packages/browser-core/src/*"]
+    }
+  },
+  "include": ["src/main/**/*", "src/shared/**/*"]
+}
+

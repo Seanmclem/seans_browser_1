@@ -1,0 +1,22 @@
+{
+  "name": "seans-browser",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "desktop:dev": "npm run dev --workspace @seans-browser/desktop",
+    "desktop:build": "npm run build --workspace @seans-browser/desktop",
+    "desktop:typecheck": "npm run typecheck --workspace @seans-browser/desktop",
+    "mobile:start": "npm run start --workspace @seans-browser/mobile",
+    "mobile:ios": "npm run ios --workspace @seans-browser/mobile",
+    "mobile:android": "npm run android --workspace @seans-browser/mobile",
+    "mobile:typecheck": "npm run typecheck --workspace @seans-browser/mobile"
+  }
+}

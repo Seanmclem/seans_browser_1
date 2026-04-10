@@ -1,0 +1,138 @@
+.tabBar {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 6px 84px;
+  -webkit-app-region: drag;
+}
+
+.dragStrip {
+  position: absolute;
+  inset: 0;
+  -webkit-app-region: drag;
+}
+
+.tabList {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.tab {
+  position: relative;
+  min-width: 220px;
+  max-width: 280px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.72);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.34);
+}
+
+.active {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.26), rgba(15, 23, 42, 0.92));
+  border-color: rgba(125, 211, 252, 0.44);
+  color: #f8fafc;
+}
+
+.sleeping {
+  opacity: 0.94;
+}
+
+.tabIcon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.favicon {
+  border-radius: 4px;
+}
+
+.defaultFavicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #22d3ee, #2563eb);
+}
+
+.sleepBadge {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f97316;
+  color: #0f172a;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.tabTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 13px;
+}
+
+.closeBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.12);
+  color: inherit;
+  font-size: 12px;
+}
+
+.preview {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.tab:hover .preview {
+  opacity: 1;
+}
+
+.newTabBtn {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22d3ee, #2563eb);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
