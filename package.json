@@ -14,8 +14,6 @@
     "desktop:dev": "npm run dev --workspace @seans-browser/desktop",
     "desktop:build": "npm run build --workspace @seans-browser/desktop",
     "desktop:typecheck": "npm run typecheck --workspace @seans-browser/desktop",
-    "desktop:wv-lab": "npm run wv-lab --workspace @seans-browser/desktop",
-    "desktop:wv-lab:hold": "npm run wv-lab:hold --workspace @seans-browser/desktop",
     "mobile:start": "npm run start --workspace @seans-browser/mobile",
     "mobile:ios": "npm run ios --workspace @seans-browser/mobile",
     "mobile:android": "npm run android --workspace @seans-browser/mobile",

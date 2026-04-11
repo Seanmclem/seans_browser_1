@@ -7,20 +7,14 @@ export class WindowManager {
   private chromeHeight = 96;
 
   createMainWindow(): BrowserWindow {
-    const useFramelessWindow = process.env.SEANS_BROWSER_FRAMELESS !== "0";
-
     this.win = new BrowserWindow({
       width: 1280,
       height: 820,
       minWidth: 900,
       minHeight: 560,
-      frame: !useFramelessWindow,
-      ...(useFramelessWindow
-        ? {
-            titleBarStyle: "hidden" as const,
-            trafficLightPosition: { x: 18, y: 18 }
-          }
-        : {}),
+      frame: false,
+      titleBarStyle: "hidden",
+      trafficLightPosition: { x: 18, y: 18 },
       backgroundColor: "#0f172a",
       webPreferences: {
         contextIsolation: true,
@@ -83,6 +77,7 @@ export class WindowManager {
       // Ignore if the chrome view has not been attached yet.
     }
 
+    // WebContentsView z-order follows attachment order; keep app chrome above page views.
     this.win.contentView.addChildView(this.chromeView);
     this.positionChromeView();
   }

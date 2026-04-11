@@ -5,7 +5,7 @@ import { HistoryManager } from "./HistoryManager";
 import { SessionManager } from "./SessionManager";
 import { SerializedDesktopTab, TabRecord } from "./types";
 
-const DEFAULT_URL = process.env.SEANS_BROWSER_START_URL ?? "https://duckduckgo.com/";
+const DEFAULT_URL = "https://duckduckgo.com/";
 
 export class TabManager extends EventEmitter {
   private readonly tabs = new Map<TabId, TabRecord>();
@@ -44,7 +44,7 @@ export class TabManager extends EventEmitter {
   createTab(inputUrl = DEFAULT_URL): TabId {
     const id = crypto.randomUUID();
     const url = normalizeURL(inputUrl);
-    const view = this.createView(id);
+    const view = this.createView();
 
     const record: TabRecord = {
       id,
@@ -69,6 +69,7 @@ export class TabManager extends EventEmitter {
     this.attachWebContentsListeners(id, view);
 
     this.emit("tab:added", this.serializeTab(record));
+    // Do not start the initial load while hidden: Chromium may skip the visible paint surface.
     void this.setActiveTab(id);
     void view.webContents.loadURL(url);
     return id;
@@ -299,7 +300,7 @@ export class TabManager extends EventEmitter {
     }
   }
 
-  private createView(id: TabId): WebContentsView {
+  private createView(): WebContentsView {
     return new WebContentsView({
       webPreferences: {
         session: this.sessionManager.getSession(),
@@ -394,7 +395,7 @@ export class TabManager extends EventEmitter {
       return;
     }
 
-    const view = this.createView(id);
+    const view = this.createView();
     tab.view = view;
     tab.state = "active";
     tab.lastActive = Date.now();

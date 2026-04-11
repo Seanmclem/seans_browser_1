@@ -8,8 +8,6 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "wv-lab": "electron-vite build && electron dist/main/wv-lab.js",
-    "wv-lab:hold": "electron-vite build && WV_LAB_HOLD=1 electron dist/main/wv-lab.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

@@ -25,6 +25,8 @@ Monorepo scaffold for a custom browser with:
     └── browser-core
 ```
 
+See [`docs/desktop-architecture.md`](docs/desktop-architecture.md) for the current desktop view architecture.
+
 ## Getting Started
 
 Use Node 22:
@@ -43,18 +45,6 @@ Run the desktop app:
 
 ```bash
 npm run desktop:dev
-```
-
-Run the isolated `WebContentsView` lab:
-
-```bash
-npm run desktop:wv-lab
-```
-
-The lab writes screenshots to `/tmp/seans-browser-wv-lab`. To test a remote page:
-
-```bash
-WV_LAB_URL=https://duckduckgo.com/ npm run desktop:wv-lab
 ```
 
 Run the Expo app:
