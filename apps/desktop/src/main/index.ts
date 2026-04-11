@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, WebContents } from "electron";
 import { DownloadManager } from "./DownloadManager";
 import { HistoryManager } from "./HistoryManager";
 import { registerIPCHandlers } from "./IPCHandler";
@@ -11,10 +11,7 @@ let mainWindow: BrowserWindow | null = null;
 let sleepManager: SleepManager | null = null;
 let tabManager: TabManager | null = null;
 
-app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("js-flags", "--max-old-space-size=512");
-app.commandLine.appendSwitch("disable-gpu");
-app.commandLine.appendSwitch("disable-gpu-compositing");
 
 async function createMainWindow(): Promise<void> {
   const windowManager = new WindowManager();
@@ -24,12 +21,18 @@ async function createMainWindow(): Promise<void> {
   new DownloadManager(sessionManager.getSession());
 
   mainWindow = windowManager.createMainWindow();
-  tabManager = new TabManager(mainWindow, sessionManager, historyManager);
+  const chromeWebContents = windowManager.getChromeWebContents();
+  tabManager = new TabManager(mainWindow, sessionManager, historyManager, () => {
+    windowManager.bringChromeToFront();
+  });
   sleepManager = new SleepManager(tabManager);
 
-  registerIPCHandlers(mainWindow, tabManager, sleepManager, historyManager);
+  registerIPCHandlers(chromeWebContents, tabManager, sleepManager, historyManager, (height) => {
+    windowManager.setChromeHeight(height);
+  });
 
   mainWindow.on("resize", () => {
+    windowManager.reflowViews();
     tabManager?.reflowViews();
   });
   mainWindow.on("closed", () => {
@@ -37,12 +40,13 @@ async function createMainWindow(): Promise<void> {
     mainWindow = null;
   });
 
-  registerWindowShortcuts(mainWindow, tabManager);
+  registerWindowShortcuts(chromeWebContents, tabManager);
   sleepManager.start();
+  tabManager.createTab();
 }
 
-function registerWindowShortcuts(win: BrowserWindow, tabs: TabManager): void {
-  win.webContents.on("before-input-event", (event, input) => {
+function registerWindowShortcuts(chromeWebContents: WebContents, tabs: TabManager): void {
+  chromeWebContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") {
       return;
     }
@@ -56,43 +60,52 @@ function registerWindowShortcuts(win: BrowserWindow, tabs: TabManager): void {
 
     if (key === "t") {
       event.preventDefault();
-      win.webContents.send("shortcut:new-tab");
+      tabs.createTab();
       return;
     }
 
     if (key === "w") {
       event.preventDefault();
-      win.webContents.send("shortcut:close-tab");
+      void tabs.closeActiveTab();
       return;
     }
 
     if (key === "l") {
       event.preventDefault();
-      win.webContents.send("ui:focus-address-bar");
+      chromeWebContents.send("ui:focus-address-bar");
       return;
     }
 
     if (key === "r") {
       event.preventDefault();
-      win.webContents.send("shortcut:reload");
+      const active = tabs.getActiveTabId();
+      if (active) {
+        void tabs.reload(active);
+      }
       return;
     }
 
     if (key === "[") {
       event.preventDefault();
-      win.webContents.send("shortcut:back");
+      const active = tabs.getActiveTabId();
+      if (active) {
+        void tabs.goBack(active);
+      }
       return;
     }
 
     if (key === "]") {
       event.preventDefault();
-      win.webContents.send("shortcut:forward");
+      const active = tabs.getActiveTabId();
+      if (active) {
+        void tabs.goForward(active);
+      }
       return;
     }
 
     if (/^[1-9]$/.test(key)) {
       event.preventDefault();
-      win.webContents.send("shortcut:switch-tab", Number(key) - 1);
+      void tabs.switchToTabAtIndex(Number(key) - 1);
     }
   });
 }

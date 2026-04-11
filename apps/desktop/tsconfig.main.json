@@ -11,6 +11,5 @@
       "@seans-browser/browser-core/*": ["../../packages/browser-core/src/*"]
     }
   },
-  "include": ["src/main/**/*", "src/shared/**/*"]
+  "include": ["src/main/**/*", "src/shared/**/*", "src/wv-lab/**/*"]
 }
-

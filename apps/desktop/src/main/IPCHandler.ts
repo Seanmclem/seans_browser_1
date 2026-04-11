@@ -1,25 +1,26 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { WebContents, ipcMain } from "electron";
 import { HistoryManager } from "./HistoryManager";
 import { SleepManager } from "./SleepManager";
 import { TabManager } from "./TabManager";
 
 export function registerIPCHandlers(
-  win: BrowserWindow,
+  chromeWebContents: WebContents,
   tabManager: TabManager,
   sleepManager: SleepManager,
-  historyManager: HistoryManager
+  historyManager: HistoryManager,
+  setChromeHeight: (height: number) => void
 ): void {
   tabManager.on("tab:added", (tab) => {
-    win.webContents.send("tab:added", tab);
+    chromeWebContents.send("tab:added", tab);
   });
   tabManager.on("tab:updated", (tab) => {
-    win.webContents.send("tab:updated", tab);
+    chromeWebContents.send("tab:updated", tab);
   });
   tabManager.on("tab:removed", (id) => {
-    win.webContents.send("tab:removed", id);
+    chromeWebContents.send("tab:removed", id);
   });
   tabManager.on("tab:activated", (id) => {
-    win.webContents.send("tab:activated", id);
+    chromeWebContents.send("tab:activated", id);
   });
 
   ipcMain.handle("tab:create", async (_event, url?: string) => {
@@ -51,6 +52,7 @@ export function registerIPCHandlers(
 
   ipcMain.handle("history:search", (_event, query: string) => historyManager.search(query));
   ipcMain.handle("layout:setChromeHeight", (_event, height: number) => {
+    setChromeHeight(height);
     tabManager.setChromeHeight(height);
   });
 }

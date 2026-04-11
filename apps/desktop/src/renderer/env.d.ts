@@ -1,5 +1,4 @@
 import type { SerializedTab, TabId } from "@seans-browser/browser-core";
-import type React from "react";
 
 interface HistoryEntry {
   url: string;
@@ -34,24 +33,6 @@ interface BrowserAPI {
 declare global {
   interface Window {
     browserAPI: BrowserAPI;
-  }
-
-  namespace JSX {
-    interface IntrinsicElements {
-      webview: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        allowpopups?: string;
-        className?: string;
-        partition?: string;
-        src?: string;
-        onDidFailLoad?: (event: unknown) => void;
-        onDidNavigate?: (event: unknown) => void;
-        onDidNavigateInPage?: (event: unknown) => void;
-        onDidStartLoading?: (event: unknown) => void;
-        onDidStopLoading?: (event: unknown) => void;
-        onPageFaviconUpdated?: (event: { favicons?: string[] }) => void;
-        onPageTitleUpdated?: (event: { title: string }) => void;
-      };
-    }
   }
 }
 

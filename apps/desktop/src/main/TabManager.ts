@@ -5,7 +5,7 @@ import { HistoryManager } from "./HistoryManager";
 import { SessionManager } from "./SessionManager";
 import { SerializedDesktopTab, TabRecord } from "./types";
 
-const DEFAULT_URL = "https://duckduckgo.com/";
+const DEFAULT_URL = process.env.SEANS_BROWSER_START_URL ?? "https://duckduckgo.com/";
 
 export class TabManager extends EventEmitter {
   private readonly tabs = new Map<TabId, TabRecord>();
@@ -15,7 +15,8 @@ export class TabManager extends EventEmitter {
   constructor(
     private readonly win: BrowserWindow,
     private readonly sessionManager: SessionManager,
-    private readonly historyManager: HistoryManager
+    private readonly historyManager: HistoryManager,
+    private readonly onPageViewAttached?: () => void
   ) {
     super();
   }
@@ -63,13 +64,13 @@ export class TabManager extends EventEmitter {
 
     this.tabs.set(id, record);
     this.win.contentView.addChildView(view);
+    this.onPageViewAttached?.();
     this.positionView(view);
     this.attachWebContentsListeners(id, view);
-    view.setVisible(false);
-    void view.webContents.loadURL(url);
 
     this.emit("tab:added", this.serializeTab(record));
-    this.setActiveTab(id);
+    void this.setActiveTab(id);
+    void view.webContents.loadURL(url);
     return id;
   }
 
@@ -400,6 +401,7 @@ export class TabManager extends EventEmitter {
     tab.isLoading = true;
 
     this.win.contentView.addChildView(view);
+    this.onPageViewAttached?.();
     this.positionView(view);
     this.attachWebContentsListeners(id, view);
     view.setVisible(true);

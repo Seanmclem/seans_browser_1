@@ -45,6 +45,18 @@ Run the desktop app:
 npm run desktop:dev
 ```
 
+Run the isolated `WebContentsView` lab:
+
+```bash
+npm run desktop:wv-lab
+```
+
+The lab writes screenshots to `/tmp/seans-browser-wv-lab`. To test a remote page:
+
+```bash
+WV_LAB_URL=https://duckduckgo.com/ npm run desktop:wv-lab
+```
+
 Run the Expo app:
 
 ```bash

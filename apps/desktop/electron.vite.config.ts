@@ -9,7 +9,8 @@ export default defineConfig({
       outDir: "dist/main",
       rollupOptions: {
         input: {
-          index: resolve(__dirname, "src/main/index.ts")
+          index: resolve(__dirname, "src/main/index.ts"),
+          "wv-lab": resolve(__dirname, "src/wv-lab/main.ts")
         }
       }
     }
