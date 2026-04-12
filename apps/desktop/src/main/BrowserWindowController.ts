@@ -60,6 +60,10 @@ export class BrowserWindowController {
     this.tabManager.setChromeHeight(height);
   }
 
+  setChromeOverlayHeight(height: number): void {
+    this.windowManager.setChromeOverlayHeight(height);
+  }
+
   private sendToChrome(channel: string, ...args: unknown[]): void {
     if (!this.chromeWebContents.isDestroyed()) {
       this.chromeWebContents.send(channel, ...args);

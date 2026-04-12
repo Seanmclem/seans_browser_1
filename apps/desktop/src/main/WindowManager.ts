@@ -5,6 +5,7 @@ export class WindowManager {
   private win: BrowserWindow | null = null;
   private chromeView: WebContentsView | null = null;
   private chromeHeight = 96;
+  private chromeOverlayHeight = 0;
 
   createMainWindow(): BrowserWindow {
     this.win = new BrowserWindow({
@@ -31,6 +32,9 @@ export class WindowManager {
         sandbox: false
       }
     });
+    // The chrome view temporarily grows over page views for custom menus.
+    // Keep the expanded area transparent so only the menu itself covers content.
+    this.chromeView.setBackgroundColor("#00000000");
     this.win.contentView.addChildView(this.chromeView);
     this.positionChromeView();
 
@@ -60,6 +64,14 @@ export class WindowManager {
     }
     this.chromeHeight = Math.max(64, Math.ceil(height));
     this.positionChromeView();
+  }
+
+  setChromeOverlayHeight(height: number): void {
+    if (!Number.isFinite(height)) {
+      return;
+    }
+    this.chromeOverlayHeight = Math.max(0, Math.ceil(height));
+    this.bringChromeToFront();
   }
 
   reflowViews(): void {
@@ -92,7 +104,7 @@ export class WindowManager {
       x: 0,
       y: 0,
       width: bounds.width,
-      height: this.chromeHeight
+      height: Math.min(bounds.height, this.chromeHeight + this.chromeOverlayHeight)
     });
   }
 }

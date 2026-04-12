@@ -36,10 +36,13 @@ interface BrowserAPI {
     search: (query: string) => Promise<HistoryEntry[]>;
   };
   browser: {
-    showMenu: (position: { x: number; y: number }) => Promise<void>;
+    closeActiveTab: () => Promise<void>;
+    moveActiveTabToNewWindow: () => Promise<void>;
+    sleepActiveTab: () => Promise<void>;
   };
   layout: {
     setChromeHeight: (height: number) => Promise<void>;
+    setChromeOverlayHeight: (height: number) => Promise<void>;
   };
   on: (channel: string, cb: (...args: unknown[]) => void) => void;
   off: (channel: string, cb: (...args: unknown[]) => void) => void;

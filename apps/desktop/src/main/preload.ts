@@ -39,12 +39,16 @@ contextBridge.exposeInMainWorld("browserAPI", {
     search: (query: string) => ipcRenderer.invoke("history:search", query)
   },
   browser: {
-    showMenu: (position: { x: number; y: number }): Promise<void> =>
-      ipcRenderer.invoke("browser:showMenu", position)
+    closeActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:closeActiveTab"),
+    moveActiveTabToNewWindow: (): Promise<void> =>
+      ipcRenderer.invoke("browser:moveActiveTabToNewWindow"),
+    sleepActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:sleepActiveTab")
   },
   layout: {
     setChromeHeight: (height: number): Promise<void> =>
-      ipcRenderer.invoke("layout:setChromeHeight", height)
+      ipcRenderer.invoke("layout:setChromeHeight", height),
+    setChromeOverlayHeight: (height: number): Promise<void> =>
+      ipcRenderer.invoke("layout:setChromeOverlayHeight", height)
   },
   on: (channel: string, callback: Listener): void => {
     const wrapped = (_event: IpcRendererEvent, ...args: unknown[]) => callback(...args);
