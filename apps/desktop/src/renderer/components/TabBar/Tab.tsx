@@ -9,9 +9,10 @@ interface TabProps {
   onClose: () => void;
   onContextMenu: (event: MouseEvent<HTMLButtonElement>) => void;
   onDragEnd: (event: DragEvent<HTMLButtonElement>) => void;
-  onDragOver: (event: DragEvent<HTMLButtonElement>) => void;
+  onDragOver: (event: DragEvent<HTMLElement>) => void;
   onDragStart: (event: DragEvent<HTMLButtonElement>) => void;
   onDrop: (event: DragEvent<HTMLButtonElement>) => void;
+  orientation?: "horizontal" | "vertical";
 }
 
 const sleepIcons: Record<string, string> = {
@@ -29,11 +30,13 @@ export function Tab({
   onDragEnd,
   onDragOver,
   onDragStart,
-  onDrop
+  onDrop,
+  orientation = "horizontal"
 }: TabProps) {
   const sleepIcon = sleepIcons[tab.state];
   const tabClassName = [
-    "app-region-no-drag group relative grid min-w-[220px] max-w-[280px] cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
+    "app-region-no-drag group relative grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
+    orientation === "vertical" ? "w-full min-w-0" : "min-w-[220px] max-w-[280px]",
     isActive
       ? "border-cyan-200/80 bg-sky-600 text-slate-50 hover:border-cyan-200/80 hover:bg-sky-600"
       : "border-slate-500/45 bg-slate-700/70 text-slate-300 hover:border-slate-300/45 hover:bg-slate-700/95",

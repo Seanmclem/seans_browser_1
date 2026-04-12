@@ -1,6 +1,7 @@
 import type { SerializedTab, TabId } from "@seans-browser/browser-core";
 
 type TabDropPlacement = "before" | "after" | "end";
+type TabStripPlacement = "top" | "left" | "right";
 
 interface HistoryEntry {
   url: string;
@@ -41,8 +42,10 @@ interface BrowserAPI {
     sleepActiveTab: () => Promise<void>;
   };
   layout: {
+    getTabStripPlacement: () => Promise<TabStripPlacement>;
     setChromeHeight: (height: number) => Promise<void>;
     setChromeOverlayHeight: (height: number) => Promise<void>;
+    setTabStripPlacement: (placement: TabStripPlacement) => Promise<void>;
   };
   on: (channel: string, cb: (...args: unknown[]) => void) => void;
   off: (channel: string, cb: (...args: unknown[]) => void) => void;

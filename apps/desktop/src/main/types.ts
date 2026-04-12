@@ -26,3 +26,12 @@ export interface DetachedTab {
 export type TabDropPlacement = "before" | "after" | "end";
 
 export type TabEventPayload = SerializedDesktopTab | TabId;
+
+export type TabStripPlacement = "top" | "left" | "right";
+
+export interface PageInsets {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+}

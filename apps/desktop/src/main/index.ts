@@ -21,11 +21,15 @@ function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindowC
     historyManager,
     sessionManager,
     onClosed: (closedController) => {
-      windowControllers.delete(closedController.chromeWebContents.id);
+      for (const contents of closedController.chromeWebContentses) {
+        windowControllers.delete(contents.id);
+      }
     },
     onMoveTabToNewWindow: moveTabToNewWindow
   });
-  windowControllers.set(controller.chromeWebContents.id, controller);
+  for (const contents of controller.chromeWebContentses) {
+    windowControllers.set(contents.id, controller);
+  }
 
   if (options.createDefaultTab !== false) {
     controller.createInitialTab();
@@ -62,6 +66,10 @@ function getControllerForSender(sender: WebContents): BrowserWindowController | 
   return windowControllers.get(sender.id);
 }
 
+function getUniqueControllers(): BrowserWindowController[] {
+  return Array.from(new Set(windowControllers.values()));
+}
+
 app.whenReady().then(() => {
   sessionManager = new SessionManager();
   historyManager = new HistoryManager();
@@ -78,7 +86,7 @@ app.whenReady().then(() => {
 
 app.on("render-process-gone", (_event, contents, details) => {
   console.warn(`[Electron] Renderer crashed: ${details.reason}`);
-  for (const controller of windowControllers.values()) {
+  for (const controller of getUniqueControllers()) {
     controller.tabManager.markCrashedByWebContents(contents);
   }
 });
@@ -87,7 +95,7 @@ setInterval(() => {
   const heapUsedMb = process.memoryUsage().heapUsed / 1024 / 1024;
   if (heapUsedMb > 1500) {
     console.warn("[Memory] High pressure detected, escalating sleeping tabs.");
-    for (const controller of windowControllers.values()) {
+    for (const controller of getUniqueControllers()) {
       void controller.sleepManager.forceEscalateSoftSleepingTabs();
     }
   }

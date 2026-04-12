@@ -9,7 +9,13 @@ import { EventEmitter } from "node:events";
 import { evaluateSleepState, normalizeURL, TabId } from "@seans-browser/browser-core";
 import { HistoryManager } from "./HistoryManager";
 import { SessionManager } from "./SessionManager";
-import { DetachedTab, SerializedDesktopTab, TabDropPlacement, TabRecord } from "./types";
+import {
+  DetachedTab,
+  PageInsets,
+  SerializedDesktopTab,
+  TabDropPlacement,
+  TabRecord
+} from "./types";
 
 const DEFAULT_URL = "https://duckduckgo.com/";
 type TabListenerCleanup = () => void;
@@ -18,7 +24,7 @@ export class TabManager extends EventEmitter {
   private readonly tabs = new Map<TabId, TabRecord>();
   private readonly tabListenerCleanups = new Map<TabId, TabListenerCleanup[]>();
   private activeTabId: TabId | null = null;
-  private uiHeight = 96;
+  private pageInsets: PageInsets = { bottom: 0, left: 0, right: 0, top: 96 };
 
   constructor(
     private readonly win: BrowserWindow,
@@ -380,11 +386,13 @@ export class TabManager extends EventEmitter {
     }
   }
 
-  setChromeHeight(height: number): void {
-    if (!Number.isFinite(height)) {
-      return;
-    }
-    this.uiHeight = Math.max(64, Math.ceil(height));
+  setPageInsets(insets: PageInsets): void {
+    this.pageInsets = {
+      bottom: Math.max(0, Math.ceil(insets.bottom)),
+      left: Math.max(0, Math.ceil(insets.left)),
+      right: Math.max(0, Math.ceil(insets.right)),
+      top: Math.max(0, Math.ceil(insets.top))
+    };
     this.reflowViews();
   }
 
@@ -580,11 +588,14 @@ export class TabManager extends EventEmitter {
 
   private positionView(view: WebContentsView): void {
     const bounds = this.win.getContentBounds();
+    const width = bounds.width - this.pageInsets.left - this.pageInsets.right;
+    const height = bounds.height - this.pageInsets.top - this.pageInsets.bottom;
+
     view.setBounds({
-      x: 0,
-      y: this.uiHeight,
-      width: bounds.width,
-      height: Math.max(bounds.height - this.uiHeight, 0)
+      x: this.pageInsets.left,
+      y: this.pageInsets.top,
+      width: Math.max(width, 0),
+      height: Math.max(height, 0)
     });
   }
 

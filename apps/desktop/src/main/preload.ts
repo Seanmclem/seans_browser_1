@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 import type { SerializedTab, TabId } from "@seans-browser/browser-core";
 
 type Listener = (...args: unknown[]) => void;
+type TabStripPlacement = "top" | "left" | "right";
 
 const subscriptions = new Map<Listener, (event: IpcRendererEvent, ...args: unknown[]) => void>();
 
@@ -45,10 +46,14 @@ contextBridge.exposeInMainWorld("browserAPI", {
     sleepActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:sleepActiveTab")
   },
   layout: {
+    getTabStripPlacement: (): Promise<TabStripPlacement> =>
+      ipcRenderer.invoke("layout:getTabStripPlacement"),
     setChromeHeight: (height: number): Promise<void> =>
       ipcRenderer.invoke("layout:setChromeHeight", height),
     setChromeOverlayHeight: (height: number): Promise<void> =>
-      ipcRenderer.invoke("layout:setChromeOverlayHeight", height)
+      ipcRenderer.invoke("layout:setChromeOverlayHeight", height),
+    setTabStripPlacement: (placement: TabStripPlacement): Promise<void> =>
+      ipcRenderer.invoke("layout:setTabStripPlacement", placement)
   },
   on: (channel: string, callback: Listener): void => {
     const wrapped = (_event: IpcRendererEvent, ...args: unknown[]) => callback(...args);

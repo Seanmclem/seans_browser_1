@@ -1,6 +1,6 @@
 import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
 import { BrowserWindowController } from "./BrowserWindowController";
-import type { TabDropPlacement } from "./types";
+import type { TabDropPlacement, TabStripPlacement } from "./types";
 
 type ControllerResolver = (sender: WebContents) => BrowserWindowController | undefined;
 interface ContextMenuPosition {
@@ -184,5 +184,14 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
   });
   ipcMain.handle("layout:setChromeOverlayHeight", (event, height: number) => {
     getController(event).setChromeOverlayHeight(height);
+  });
+  ipcMain.handle("layout:getTabStripPlacement", (event) =>
+    getController(event).getTabStripPlacement()
+  );
+  ipcMain.handle("layout:setTabStripPlacement", (event, placement: TabStripPlacement) => {
+    if (!["top", "left", "right"].includes(placement)) {
+      return;
+    }
+    getController(event).setTabStripPlacement(placement);
   });
 }
