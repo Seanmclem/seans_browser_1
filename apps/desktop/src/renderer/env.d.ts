@@ -35,6 +35,9 @@ interface BrowserAPI {
   history: {
     search: (query: string) => Promise<HistoryEntry[]>;
   };
+  browser: {
+    showMenu: (position: { x: number; y: number }) => Promise<void>;
+  };
   layout: {
     setChromeHeight: (height: number) => Promise<void>;
   };

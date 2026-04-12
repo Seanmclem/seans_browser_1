@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld("browserAPI", {
   history: {
     search: (query: string) => ipcRenderer.invoke("history:search", query)
   },
+  browser: {
+    showMenu: (position: { x: number; y: number }): Promise<void> =>
+      ipcRenderer.invoke("browser:showMenu", position)
+  },
   layout: {
     setChromeHeight: (height: number): Promise<void> =>
       ipcRenderer.invoke("layout:setChromeHeight", height)

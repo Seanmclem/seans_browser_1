@@ -39,6 +39,15 @@ export function TabBar() {
     });
   };
 
+  const handleBrowserMenu = (event: MouseEvent<HTMLButtonElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.blur();
+    void window.browserAPI.browser.showMenu({
+      x: bounds.left,
+      y: bounds.bottom + 4
+    });
+  };
+
   const handleDragStart = (event: DragEvent<HTMLButtonElement>, tabId: string) => {
     const token = crypto.randomUUID();
     activeDragTokenRef.current = token;
@@ -77,11 +86,11 @@ export function TabBar() {
 
   return (
     <div
-      className="relative grid grid-cols-[1fr_auto] items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]"
+      className="relative flex items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]"
       style={DRAG_REGION_STYLE}
     >
       <div
-        className="relative flex gap-[10px] overflow-x-auto pb-0.5"
+        className="relative flex max-w-[calc(100%-120px)] shrink gap-[10px] overflow-x-auto pb-0.5"
       >
         {tabs.map((tab) => (
           <Tab
@@ -115,6 +124,19 @@ export function TabBar() {
         type="button"
       >
         +
+      </button>
+      <div className="min-w-4 flex-1 self-stretch" />
+      <button
+        aria-label="Open browser menu"
+        className="relative inline-flex h-10 w-10 cursor-pointer flex-col items-center justify-center gap-[4px] rounded-[14px] border border-slate-400/30 bg-slate-800/90 text-white transition-colors duration-150 hover:bg-slate-700 active:bg-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+        onClick={handleBrowserMenu}
+        onMouseLeave={(event) => event.currentTarget.blur()}
+        style={NO_DRAG_REGION_STYLE}
+        type="button"
+      >
+        <span className="block h-[2px] w-4 rounded-full bg-current" />
+        <span className="block h-[2px] w-4 rounded-full bg-current" />
+        <span className="block h-[2px] w-4 rounded-full bg-current" />
       </button>
     </div>
   );

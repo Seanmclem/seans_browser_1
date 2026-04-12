@@ -26,6 +26,86 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
     return controller;
   };
 
+  ipcMain.handle("browser:showMenu", (event, position: ContextMenuPosition) => {
+    const controller = getController(event);
+    const activeTabId = controller.tabManager.getActiveTabId();
+    const activeTab = controller.tabManager.getActiveTab();
+
+    const menu = Menu.buildFromTemplate([
+      {
+        accelerator: "CommandOrControl+T",
+        label: "New Tab",
+        click: () => {
+          controller.tabManager.createTab();
+        }
+      },
+      { type: "separator" },
+      {
+        enabled: Boolean(activeTab?.canGoBack && activeTabId),
+        label: "Back",
+        click: () => {
+          if (activeTabId) {
+            void controller.tabManager.goBack(activeTabId);
+          }
+        }
+      },
+      {
+        enabled: Boolean(activeTab?.canGoForward && activeTabId),
+        label: "Forward",
+        click: () => {
+          if (activeTabId) {
+            void controller.tabManager.goForward(activeTabId);
+          }
+        }
+      },
+      {
+        accelerator: "CommandOrControl+R",
+        enabled: Boolean(activeTabId),
+        label: "Reload",
+        click: () => {
+          if (activeTabId) {
+            void controller.tabManager.reload(activeTabId);
+          }
+        }
+      },
+      { type: "separator" },
+      {
+        enabled: Boolean(activeTabId),
+        label: "Move Active Tab to New Window",
+        click: () => {
+          if (activeTabId) {
+            void controller.moveTabToNewWindow(activeTabId);
+          }
+        }
+      },
+      {
+        enabled: Boolean(activeTabId),
+        label: "Sleep Active Tab",
+        click: () => {
+          if (activeTabId) {
+            void controller.sleepManager.softSleep(activeTabId);
+          }
+        }
+      },
+      {
+        accelerator: "CommandOrControl+W",
+        enabled: Boolean(activeTabId),
+        label: "Close Active Tab",
+        click: () => {
+          if (activeTabId) {
+            void controller.tabManager.closeTab(activeTabId);
+          }
+        }
+      }
+    ]);
+
+    menu.popup({
+      window: controller.window,
+      x: Math.round(position.x),
+      y: Math.round(position.y)
+    });
+  });
+
   ipcMain.handle("tab:create", async (event, url?: string) => {
     return getController(event).tabManager.createTab(url);
   });
