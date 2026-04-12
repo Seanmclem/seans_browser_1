@@ -25,7 +25,7 @@ Monorepo scaffold for a custom browser with:
     └── browser-core
 ```
 
-See [`docs/desktop-architecture.md`](docs/desktop-architecture.md) for the current desktop view architecture.
+See [`docs/desktop-architecture.md`](docs/desktop-architecture.md) for the current desktop view architecture and [`docs/desktop-browser-ui.md`](docs/desktop-browser-ui.md) for the React browser chrome.
 
 ## Getting Started
 

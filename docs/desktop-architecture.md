@@ -22,6 +22,8 @@ When creating a new active tab, `TabManager` activates and shows its page view b
 
 The React renderer is browser chrome only. It does not render page contents and does not use DOM `<webview>`. It mirrors tab state from the main process through IPC, renders the tab bar, toolbar, and address bar, and sends navigation/tab commands back to main.
 
+See [`desktop-browser-ui.md`](desktop-browser-ui.md) for the current React/TypeScript browser chrome structure.
+
 ## Mobile
 
 The Expo app is a separate React Native shell using `react-native-webview`. Shared URL normalization, tab types, and sleep policy logic live in `packages/browser-core` so desktop and mobile can converge without sharing platform-specific view code.
