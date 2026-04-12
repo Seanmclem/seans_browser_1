@@ -38,8 +38,13 @@ export function useTabManager(): void {
     });
   });
 
+  useIPC("tab:reordered", (tabs) => {
+    startTransition(() => {
+      useTabStore.getState().setTabs(tabs as SerializedTab[]);
+    });
+  });
+
   useIPC("ui:focus-address-bar", () => {
     useUIStore.getState().focusAddressBar();
   });
 }
-

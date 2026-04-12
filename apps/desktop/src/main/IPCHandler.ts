@@ -1,5 +1,6 @@
 import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
 import { BrowserWindowController } from "./BrowserWindowController";
+import type { TabDropPlacement } from "./types";
 
 type ControllerResolver = (sender: WebContents) => BrowserWindowController | undefined;
 interface ContextMenuPosition {
@@ -8,6 +9,15 @@ interface ContextMenuPosition {
 }
 
 export function registerIPCHandlers(resolveController: ControllerResolver): void {
+  const tabDragSessions = new Map<
+    string,
+    {
+      consumed: boolean;
+      sourceController: BrowserWindowController;
+      tabId: string;
+    }
+  >();
+
   const getController = (event: IpcMainInvokeEvent): BrowserWindowController => {
     const controller = resolveController(event.sender);
     if (!controller) {
@@ -31,6 +41,63 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
   });
   ipcMain.handle("tab:moveToNewWindow", async (event, id: string) => {
     await getController(event).moveTabToNewWindow(id);
+  });
+  ipcMain.handle(
+    "tab:move",
+    (event, id: string, targetId: string | null, placement: TabDropPlacement) => {
+      getController(event).tabManager.moveTab(id, targetId, placement);
+    }
+  );
+  ipcMain.handle("tab:beginDrag", (event, token: string, id: string) => {
+    tabDragSessions.set(token, {
+      consumed: false,
+      sourceController: getController(event),
+      tabId: id
+    });
+  });
+  ipcMain.handle(
+    "tab:dropDragged",
+    async (event, token: string, targetId: string | null, placement: TabDropPlacement) => {
+      const dragSession = tabDragSessions.get(token);
+      if (!dragSession) {
+        return;
+      }
+
+      dragSession.consumed = true;
+      const targetController = getController(event);
+
+      if (dragSession.sourceController === targetController) {
+        targetController.tabManager.moveTab(dragSession.tabId, targetId, placement);
+        return;
+      }
+
+      const detachedTab = await dragSession.sourceController.tabManager.detachTab(
+        dragSession.tabId
+      );
+      if (!detachedTab) {
+        return;
+      }
+
+      await targetController.tabManager.adoptDetachedTab(detachedTab, targetId, placement);
+      targetController.window.focus();
+
+      if (dragSession.sourceController.tabManager.getTabs().length === 0) {
+        dragSession.sourceController.window.close();
+      }
+    }
+  );
+  ipcMain.handle("tab:endDrag", async (_event, token: string) => {
+    const dragSession = tabDragSessions.get(token);
+    if (!dragSession) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    tabDragSessions.delete(token);
+
+    if (!dragSession.consumed) {
+      await dragSession.sourceController.moveTabToNewWindow(dragSession.tabId);
+    }
   });
   ipcMain.handle(
     "tab:showContextMenu",

@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import type { DragEvent, MouseEvent } from "react";
 import type { SerializedTab } from "@seans-browser/browser-core";
 import { SleepOverlay } from "../SleepOverlay/SleepOverlay";
 
@@ -8,6 +8,10 @@ interface TabProps {
   onActivate: () => void;
   onClose: () => void;
   onContextMenu: (event: MouseEvent<HTMLButtonElement>) => void;
+  onDragEnd: (event: DragEvent<HTMLButtonElement>) => void;
+  onDragOver: (event: DragEvent<HTMLButtonElement>) => void;
+  onDragStart: (event: DragEvent<HTMLButtonElement>) => void;
+  onDrop: (event: DragEvent<HTMLButtonElement>) => void;
 }
 
 const sleepIcons: Record<string, string> = {
@@ -16,7 +20,17 @@ const sleepIcons: Record<string, string> = {
   crashed: "!"
 };
 
-export function Tab({ tab, isActive, onActivate, onClose, onContextMenu }: TabProps) {
+export function Tab({
+  tab,
+  isActive,
+  onActivate,
+  onClose,
+  onContextMenu,
+  onDragEnd,
+  onDragOver,
+  onDragStart,
+  onDrop
+}: TabProps) {
   const sleepIcon = sleepIcons[tab.state];
   const tabClassName = [
     "app-region-no-drag group relative grid min-w-[220px] max-w-[280px] cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
@@ -29,8 +43,13 @@ export function Tab({ tab, isActive, onActivate, onClose, onContextMenu }: TabPr
   return (
     <button
       className={tabClassName}
+      draggable={tab.state !== "hard-sleeping"}
       onClick={onActivate}
       onContextMenu={onContextMenu}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragStart={onDragStart}
+      onDrop={onDrop}
       title={tab.title}
       type="button"
     >

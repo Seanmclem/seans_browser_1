@@ -11,6 +11,19 @@ contextBridge.exposeInMainWorld("browserAPI", {
     close: (id: TabId): Promise<void> => ipcRenderer.invoke("tab:close", id),
     activate: (id: TabId): Promise<void> => ipcRenderer.invoke("tab:activate", id),
     list: (): Promise<SerializedTab[]> => ipcRenderer.invoke("tab:list"),
+    beginDrag: (token: string, id: TabId): Promise<void> =>
+      ipcRenderer.invoke("tab:beginDrag", token, id),
+    dropDragged: (
+      token: string,
+      targetId: TabId | null,
+      placement: "before" | "after" | "end"
+    ): Promise<void> => ipcRenderer.invoke("tab:dropDragged", token, targetId, placement),
+    endDrag: (token: string): Promise<void> => ipcRenderer.invoke("tab:endDrag", token),
+    move: (
+      id: TabId,
+      targetId: TabId | null,
+      placement: "before" | "after" | "end"
+    ): Promise<void> => ipcRenderer.invoke("tab:move", id, targetId, placement),
     moveToNewWindow: (id: TabId): Promise<void> => ipcRenderer.invoke("tab:moveToNewWindow", id),
     showContextMenu: (id: TabId, position: { x: number; y: number }): Promise<void> =>
       ipcRenderer.invoke("tab:showContextMenu", id, position),

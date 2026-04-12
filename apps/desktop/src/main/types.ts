@@ -23,4 +23,6 @@ export interface DetachedTab {
   wasActive: boolean;
 }
 
+export type TabDropPlacement = "before" | "after" | "end";
+
 export type TabEventPayload = SerializedDesktopTab | TabId;

@@ -20,6 +20,7 @@ export class BrowserWindowController {
   readonly tabManager: TabManager;
   readonly sleepManager: SleepManager;
   readonly chromeWebContents: WebContents;
+  private isDisposed = false;
 
   constructor(private readonly options: BrowserWindowControllerOptions) {
     this.historyManager = options.historyManager;
@@ -78,6 +79,9 @@ export class BrowserWindowController {
     this.tabManager.on("tab:activated", (id) => {
       this.sendToChrome("tab:activated", id);
     });
+    this.tabManager.on("tab:reordered", (tabs) => {
+      this.sendToChrome("tab:reordered", tabs);
+    });
   }
 
   private registerWindowEvents(): void {
@@ -85,10 +89,22 @@ export class BrowserWindowController {
       this.windowManager.reflowViews();
       this.tabManager.reflowViews();
     });
+    this.window.on("close", () => {
+      this.dispose();
+    });
     this.window.on("closed", () => {
-      this.sleepManager.stop();
+      this.dispose();
       this.options.onClosed(this);
     });
+  }
+
+  private dispose(): void {
+    if (this.isDisposed) {
+      return;
+    }
+    this.isDisposed = true;
+    this.sleepManager.stop();
+    this.tabManager.destroyAllTabs();
   }
 
   private registerWindowShortcuts(): void {

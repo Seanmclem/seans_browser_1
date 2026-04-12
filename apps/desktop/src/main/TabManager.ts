@@ -9,7 +9,7 @@ import { EventEmitter } from "node:events";
 import { evaluateSleepState, normalizeURL, TabId } from "@seans-browser/browser-core";
 import { HistoryManager } from "./HistoryManager";
 import { SessionManager } from "./SessionManager";
-import { DetachedTab, SerializedDesktopTab, TabRecord } from "./types";
+import { DetachedTab, SerializedDesktopTab, TabDropPlacement, TabRecord } from "./types";
 
 const DEFAULT_URL = "https://duckduckgo.com/";
 type TabListenerCleanup = () => void;
@@ -157,6 +157,31 @@ export class TabManager extends EventEmitter {
     }
   }
 
+  destroyAllTabs(): void {
+    for (const tab of this.tabs.values()) {
+      this.cleanupTabListeners(tab.id);
+
+      if (!tab.view) {
+        continue;
+      }
+
+      try {
+        this.win.contentView.removeChildView(tab.view);
+      } catch {
+        // The BrowserWindow may already be tearing down.
+      }
+
+      try {
+        tab.view.webContents.destroy();
+      } catch {
+        // Ignore already-destroyed contents.
+      }
+    }
+
+    this.tabs.clear();
+    this.activeTabId = null;
+  }
+
   async detachTab(id: TabId): Promise<DetachedTab | null> {
     const tab = this.tabs.get(id);
     if (!tab?.view) {
@@ -190,13 +215,18 @@ export class TabManager extends EventEmitter {
     return { record: tab, view, wasActive };
   }
 
-  async adoptDetachedTab(detachedTab: DetachedTab): Promise<TabId> {
+  async adoptDetachedTab(
+    detachedTab: DetachedTab,
+    targetTabId: TabId | null = null,
+    placement: TabDropPlacement = "end"
+  ): Promise<TabId> {
     const { record, view } = detachedTab;
     record.view = view;
     record.state = "awake";
     record.lastActive = Date.now();
 
     this.tabs.set(record.id, record);
+    this.moveTab(record.id, targetTabId, placement);
     this.win.contentView.addChildView(view);
     this.onPageViewAttached?.();
     this.positionView(view);
@@ -205,6 +235,34 @@ export class TabManager extends EventEmitter {
     this.emit("tab:added", this.serializeTab(record));
     await this.setActiveTab(record.id);
     return record.id;
+  }
+
+  moveTab(id: TabId, targetTabId: TabId | null, placement: TabDropPlacement = "end"): void {
+    const tab = this.tabs.get(id);
+    if (!tab || targetTabId === id) {
+      return;
+    }
+
+    const orderedTabs = this.getTabs().filter((candidate) => candidate.id !== id);
+    let insertIndex = orderedTabs.length;
+
+    if (targetTabId && placement !== "end") {
+      const targetIndex = orderedTabs.findIndex((candidate) => candidate.id === targetTabId);
+      if (targetIndex >= 0) {
+        insertIndex = placement === "before" ? targetIndex : targetIndex + 1;
+      }
+    }
+
+    orderedTabs.splice(insertIndex, 0, tab);
+    this.tabs.clear();
+    for (const orderedTab of orderedTabs) {
+      this.tabs.set(orderedTab.id, orderedTab);
+    }
+
+    this.emit("tab:reordered", this.getSerializedTabs());
+    if (this.activeTabId) {
+      this.emit("tab:activated", this.activeTabId);
+    }
   }
 
   async closeActiveTab(): Promise<void> {

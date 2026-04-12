@@ -1,5 +1,7 @@
 import type { SerializedTab, TabId } from "@seans-browser/browser-core";
 
+type TabDropPlacement = "before" | "after" | "end";
+
 interface HistoryEntry {
   url: string;
   title: string;
@@ -12,6 +14,14 @@ interface BrowserAPI {
     close: (id: TabId) => Promise<void>;
     activate: (id: TabId) => Promise<void>;
     list: () => Promise<SerializedTab[]>;
+    beginDrag: (token: string, id: TabId) => Promise<void>;
+    dropDragged: (
+      token: string,
+      targetId: TabId | null,
+      placement: TabDropPlacement
+    ) => Promise<void>;
+    endDrag: (token: string) => Promise<void>;
+    move: (id: TabId, targetId: TabId | null, placement: TabDropPlacement) => Promise<void>;
     moveToNewWindow: (id: TabId) => Promise<void>;
     showContextMenu: (id: TabId, position: { x: number; y: number }) => Promise<void>;
     sleep: (id: TabId) => Promise<void>;
