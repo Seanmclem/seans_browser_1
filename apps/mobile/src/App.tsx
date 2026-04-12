@@ -17,6 +17,7 @@ import { NavigationBar } from "./components/NavigationBar";
 import { TabStrip } from "./components/TabStrip";
 import { useSleepWatcher } from "./hooks/useSleepWatcher";
 import { useBrowserStore } from "./store/browserStore";
+import { WEB_VIEW_MEDIA_POLICY_PROPS } from "./webViewMediaPolicy";
 
 const WEB_VIEW_STYLE: ViewStyle = { flex: 1, backgroundColor: "#fff" };
 
@@ -138,6 +139,7 @@ export default function App() {
                   className={`absolute inset-0 ${visible ? "opacity-100" : "opacity-0"}`}
                 >
                   <WebView
+                    {...WEB_VIEW_MEDIA_POLICY_PROPS}
                     ref={(instance) => {
                       webViewRefs.current[tab.id] = instance;
                     }}
