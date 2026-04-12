@@ -9,6 +9,7 @@ app.commandLine.appendSwitch("js-flags", "--max-old-space-size=512");
 
 const WINDOW_CASCADE_OFFSET = 32;
 const windowControllers = new Map<number, BrowserWindowController>();
+const windowControllersByWindowId = new Map<number, BrowserWindowController>();
 let sessionManager: SessionManager;
 let historyManager: HistoryManager;
 
@@ -24,12 +25,14 @@ function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindowC
       for (const contents of closedController.chromeWebContentses) {
         windowControllers.delete(contents.id);
       }
+      windowControllersByWindowId.delete(closedController.window.id);
     },
     onMoveTabToNewWindow: moveTabToNewWindow
   });
   for (const contents of controller.chromeWebContentses) {
     windowControllers.set(contents.id, controller);
   }
+  windowControllersByWindowId.set(controller.window.id, controller);
 
   if (options.createDefaultTab !== false) {
     controller.createInitialTab();
@@ -63,7 +66,13 @@ async function moveTabToNewWindow(
 }
 
 function getControllerForSender(sender: WebContents): BrowserWindowController | undefined {
-  return windowControllers.get(sender.id);
+  const controller = windowControllers.get(sender.id);
+  if (controller) {
+    return controller;
+  }
+
+  const win = BrowserWindow.fromWebContents(sender);
+  return win ? windowControllersByWindowId.get(win.id) : undefined;
 }
 
 function getUniqueControllers(): BrowserWindowController[] {
