@@ -16,6 +16,8 @@ React chrome and web pages are sibling `WebContentsView`s inside the window cont
 
 Page views are attached before the chrome view is brought back to the front. This preserves the expected z-order while still allowing pages to occupy the main content area.
 
+Custom chrome overlays, currently the top-right hamburger menu, use a separate overlay height rather than changing the page layout height. The renderer calls `layout:setChromeOverlayHeight` while the menu is open, and `WindowManager` grows the transparent chrome `WebContentsView` above the page view. Page bounds stay unchanged, so opening a menu does not shove or resize the active tab; it only gives React enough paint area to appear above the native page view.
+
 When creating a new active tab, `TabManager` activates and shows its page view before calling `loadURL()`. Loading while hidden can leave Chromium without an available display surface on macOS, which caused pages to load in the DOM but fail to paint visibly.
 
 ## Renderer

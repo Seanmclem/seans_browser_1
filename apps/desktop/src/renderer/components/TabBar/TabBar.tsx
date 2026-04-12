@@ -49,11 +49,9 @@ export function TabBar() {
     };
 
     window.addEventListener("click", closeBrowserMenu);
-    window.addEventListener("blur", closeBrowserMenu);
     window.addEventListener("keydown", closeOnEscape);
     return () => {
       window.removeEventListener("click", closeBrowserMenu);
-      window.removeEventListener("blur", closeBrowserMenu);
       window.removeEventListener("keydown", closeOnEscape);
       void window.browserAPI.layout.setChromeOverlayHeight(0);
     };
@@ -83,9 +81,11 @@ export function TabBar() {
   };
 
   const handleBrowserMenu = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     const bounds = event.currentTarget.getBoundingClientRect();
     event.currentTarget.blur();
     const menuX = bounds.right - BROWSER_MENU_WIDTH;
+    void window.browserAPI.layout.setChromeOverlayHeight(BROWSER_MENU_OVERLAY_HEIGHT);
     setBrowserMenu({
       x: Math.max(12, Math.min(menuX, window.innerWidth - BROWSER_MENU_WIDTH - 12)),
       y: bounds.bottom + 8

@@ -37,7 +37,17 @@ It also measures the `<header>` height with `ResizeObserver` and sends that valu
 - `components/AddressBar/AddressBar.tsx`: renders URL/search input, security label, focus behavior, and navigation submit.
 - `components/SleepOverlay/SleepOverlay.tsx`: renders a snapshot overlay for sleeping tabs.
 
-Component styles live next to components as CSS modules, for example `TabBar.module.css` and `AddressBar.module.css`.
+Most component styling now uses Tailwind utility classes in the TSX files. `styles.css` keeps global renderer rules such as transparency, base font setup, and Electron drag/no-drag regions.
+
+## Browser Menu
+
+The top-right hamburger menu is a custom React menu rendered by `components/TabBar/TabBar.tsx`, not a native Electron `Menu`. This gives the app control over styling and keeps it visually aligned with the rest of the browser chrome.
+
+Because page contents are separate sibling `WebContentsView`s, a normal React popover cannot extend over the page area unless the chrome view itself is tall enough. When the hamburger menu opens, `TabBar` calls `window.browserAPI.layout.setChromeOverlayHeight(...)` before setting menu state. `WindowManager` temporarily grows the transparent chrome `WebContentsView` so the menu can paint above the active page view. When the menu closes, the overlay height is reset to `0`.
+
+This overlay only exists while the menu is open. During normal browsing the chrome view returns to its measured header height, so the approach should not add ongoing layout or rendering work. While open, the transparent overlay intentionally captures outside clicks so the menu can dismiss cleanly.
+
+The tab right-click menu is still native Electron UI through `tab.showContextMenu(...)`. That menu behaves like an OS context menu and does not need the custom overlay treatment.
 
 ## State
 
