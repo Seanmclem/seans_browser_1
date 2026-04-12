@@ -30,7 +30,6 @@ export function TabBar() {
       className="relative grid grid-cols-[1fr_auto] items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]"
       style={DRAG_REGION_STYLE}
     >
-      <div className="absolute inset-0" style={DRAG_REGION_STYLE} />
       <div
         className="relative flex gap-[10px] overflow-x-auto pb-0.5"
         style={NO_DRAG_REGION_STYLE}
@@ -51,8 +50,13 @@ export function TabBar() {
       </div>
 
       <button
-        className="h-10 w-10 cursor-pointer rounded-[14px] border-0 bg-[linear-gradient(135deg,#22d3ee,#2563eb)] text-[24px] text-white"
-        onClick={() => void handleNewTab()}
+        aria-label="Open a new tab"
+        className="relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-[14px] border border-cyan-300/35 bg-sky-800/90 text-[24px] leading-none text-white transition-colors duration-150 hover:bg-sky-700 active:bg-sky-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+        onClick={(event) => {
+          event.currentTarget.blur();
+          void handleNewTab();
+        }}
+        onMouseLeave={(event) => event.currentTarget.blur()}
         style={NO_DRAG_REGION_STYLE}
         type="button"
       >

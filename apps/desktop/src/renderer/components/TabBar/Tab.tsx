@@ -17,10 +17,10 @@ const sleepIcons: Record<string, string> = {
 export function Tab({ tab, isActive, onActivate, onClose }: TabProps) {
   const sleepIcon = sleepIcons[tab.state];
   const tabClassName = [
-    "group relative grid min-w-[220px] max-w-[280px] cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border border-slate-400/15 bg-slate-800/70 px-3 py-[10px] text-slate-300 transition-[background,border-color,transform] duration-150 hover:-translate-y-px hover:border-sky-300/35",
+    "group relative grid min-w-[220px] max-w-[280px] cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
     isActive
-      ? "border-sky-300/45 bg-[linear-gradient(180deg,rgba(37,99,235,0.26),rgba(15,23,42,0.92))] text-slate-50"
-      : "",
+      ? "border-cyan-200/80 bg-sky-600 text-slate-50 hover:border-cyan-200/80 hover:bg-sky-600"
+      : "border-slate-500/45 bg-slate-700/70 text-slate-300 hover:border-slate-300/45 hover:bg-slate-700/95",
     sleepIcon ? "opacity-95" : ""
   ].join(" ");
 
@@ -35,7 +35,7 @@ export function Tab({ tab, isActive, onActivate, onClose }: TabProps) {
         {tab.favicon ? (
           <img className="rounded" src={tab.favicon} width={16} height={16} alt="" />
         ) : (
-          <div className="h-4 w-4 rounded-[5px] bg-[linear-gradient(135deg,#22d3ee,#2563eb)]" />
+          <div className="h-4 w-4 rounded-[5px] bg-sky-500" />
         )}
         {sleepIcon ? (
           <span className="absolute -bottom-2 -right-2 h-4 min-w-4 rounded-full bg-orange-500 px-1 text-center text-[8px] font-bold leading-4 text-slate-900">
@@ -49,7 +49,7 @@ export function Tab({ tab, isActive, onActivate, onClose }: TabProps) {
       </span>
 
       <span
-        className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-slate-400/10 text-[12px] text-inherit"
+        className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-slate-400/10 text-[12px] text-inherit transition-colors duration-150 hover:bg-slate-300/20"
         onClick={(event) => {
           event.stopPropagation();
           onClose();
