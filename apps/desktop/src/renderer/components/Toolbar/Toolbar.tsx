@@ -1,5 +1,10 @@
 import { useTabStore } from "../../store/tabStore";
-import styles from "./Toolbar.module.css";
+
+const TOOL_CLASS =
+  "cursor-pointer rounded-[14px] border-0 bg-slate-700/85 px-[14px] py-[10px] text-[13px] text-slate-50 transition-[background,opacity,transform] duration-150 hover:-translate-y-px disabled:cursor-default disabled:opacity-45";
+
+const SECONDARY_TOOL_CLASS =
+  "cursor-pointer rounded-[14px] border-0 bg-orange-500/20 px-[14px] py-[10px] text-[13px] text-orange-300 transition-[background,opacity,transform] duration-150 hover:-translate-y-px";
 
 export function Toolbar() {
   const { activeTabId, tabs } = useTabStore();
@@ -29,9 +34,9 @@ export function Toolbar() {
   };
 
   return (
-    <div className={styles.toolbar}>
+    <div className="flex gap-[10px]">
       <button
-        className={styles.tool}
+        className={TOOL_CLASS}
         disabled={!activeTab?.canGoBack}
         onClick={() => run("back")}
         type="button"
@@ -39,20 +44,19 @@ export function Toolbar() {
         Back
       </button>
       <button
-        className={styles.tool}
+        className={TOOL_CLASS}
         disabled={!activeTab?.canGoForward}
         onClick={() => run("forward")}
         type="button"
       >
         Forward
       </button>
-      <button className={styles.tool} onClick={() => run("reload")} type="button">
+      <button className={TOOL_CLASS} onClick={() => run("reload")} type="button">
         {activeTab?.isLoading ? "Stop?" : "Reload"}
       </button>
-      <button className={styles.secondary} onClick={() => run("sleep")} type="button">
+      <button className={SECONDARY_TOOL_CLASS} onClick={() => run("sleep")} type="button">
         Sleep Tab
       </button>
     </div>
   );
 }
-

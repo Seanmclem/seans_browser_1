@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import type { MobileTab } from "../store/browserStore";
 
 interface TabStripProps {
@@ -11,8 +11,12 @@ interface TabStripProps {
 
 export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: TabStripProps) {
   return (
-    <View style={styles.wrapper}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
+    <View className="flex-row items-center gap-[10px]">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-[10px] pr-[10px]"
+      >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           return (
@@ -20,95 +24,44 @@ export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: T
               key={tab.id}
               activeOpacity={0.86}
               onPress={() => onActivate(tab.id)}
-              style={[styles.tab, isActive && styles.tabActive]}
+              className={`min-w-[180px] max-w-[220px] flex-row items-center gap-2 rounded-[18px] border px-[14px] py-3 ${
+                isActive
+                  ? "border-cyan-300/45 bg-cyan-700/25"
+                  : "border-slate-400/15 bg-slate-900/60"
+              }`}
             >
-              <Text numberOfLines={1} style={[styles.tabText, isActive && styles.tabTextActive]}>
+              <Text
+                numberOfLines={1}
+                className={`flex-1 text-[13px] font-semibold ${
+                  isActive ? "text-slate-50" : "text-blue-100"
+                }`}
+              >
                 {tab.title || tab.url}
               </Text>
-              <Text style={styles.badge}>
+              <Text className="text-[10px] uppercase text-orange-500">
                 {tab.state === "soft-sleeping"
                   ? "soft"
                   : tab.state === "hard-sleeping"
                     ? "hard"
                     : ""}
               </Text>
-              <TouchableOpacity onPress={() => onClose(tab.id)} style={styles.close}>
-                <Text style={styles.closeText}>x</Text>
+              <TouchableOpacity
+                onPress={() => onClose(tab.id)}
+                className="h-[22px] w-[22px] items-center justify-center rounded-full bg-slate-400/15"
+              >
+                <Text className="text-white">x</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
-      <TouchableOpacity activeOpacity={0.88} onPress={onCreate} style={styles.add}>
-        <Text style={styles.addText}>+</Text>
+      <TouchableOpacity
+        activeOpacity={0.88}
+        onPress={onCreate}
+        className="h-[42px] w-[42px] items-center justify-center rounded-2xl bg-cyan-400"
+      >
+        <Text className="text-[26px] text-cyan-950">+</Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10
-  },
-  list: {
-    gap: 10,
-    paddingRight: 10
-  },
-  tab: {
-    minWidth: 180,
-    maxWidth: 220,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 18,
-    backgroundColor: "rgba(15,23,42,0.62)",
-    borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.16)"
-  },
-  tabActive: {
-    backgroundColor: "rgba(8,145,178,0.26)",
-    borderColor: "rgba(103,232,249,0.44)"
-  },
-  tabText: {
-    flex: 1,
-    color: "#dbeafe",
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  tabTextActive: {
-    color: "#f8fafc"
-  },
-  badge: {
-    color: "#f97316",
-    fontSize: 10,
-    textTransform: "uppercase"
-  },
-  close: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(148,163,184,0.16)"
-  },
-  closeText: {
-    color: "#fff"
-  },
-  add: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#22d3ee"
-  },
-  addText: {
-    fontSize: 26,
-    color: "#082f49"
-  }
-});
-

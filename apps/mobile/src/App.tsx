@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
+import "./global.css";
 import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  StyleSheet,
   Text,
   TouchableOpacity,
+  type ViewStyle,
   View
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -16,6 +17,8 @@ import { NavigationBar } from "./components/NavigationBar";
 import { TabStrip } from "./components/TabStrip";
 import { useSleepWatcher } from "./hooks/useSleepWatcher";
 import { useBrowserStore } from "./store/browserStore";
+
+const WEB_VIEW_STYLE: ViewStyle = { flex: 1, backgroundColor: "#fff" };
 
 export default function App() {
   const tabs = useBrowserStore((state) => state.tabs);
@@ -85,18 +88,22 @@ export default function App() {
   };
 
   return (
-    <View style={styles.background}>
-      <View style={[styles.orb, styles.orbOne]} />
-      <View style={[styles.orb, styles.orbTwo]} />
-      <SafeAreaView style={styles.safeArea}>
+    <View className="flex-1 bg-[#020617]">
+      <View className="absolute -right-[30px] -top-10 h-[240px] w-[240px] rounded-full bg-cyan-400/[0.16]" />
+      <View className="absolute -left-[90px] bottom-20 h-[320px] w-[320px] rounded-full bg-orange-500/10" />
+      <SafeAreaView className="flex-1 bg-slate-950/60">
         <StatusBar style="light" />
         <KeyboardAvoidingView
           behavior={Platform.select({ ios: "padding", default: undefined })}
-          style={styles.container}
+          className="flex-1 gap-[14px] px-4 pb-4"
         >
-          <View style={styles.chrome}>
-            <Text style={styles.eyebrow}>SeanBrowser Mobile</Text>
-            <Text style={styles.title}>Expo browser shell with tab sleep states</Text>
+          <View className="mt-2 gap-[14px] rounded-[28px] border border-cyan-300/15 bg-slate-900/70 p-[18px]">
+            <Text className="text-[11px] font-bold uppercase tracking-[1.4px] text-cyan-300">
+              SeanBrowser Mobile
+            </Text>
+            <Text className="text-[28px] font-bold leading-[31px] text-slate-50">
+              Expo browser shell with tab sleep states
+            </Text>
             <TabStrip
               activeTabId={activeTabId}
               onActivate={setActiveTab}
@@ -117,7 +124,7 @@ export default function App() {
             />
           </View>
 
-          <View style={styles.viewport}>
+          <View className="flex-1 overflow-hidden rounded-[30px] border border-slate-400/10 bg-slate-950/80">
             {tabs.map((tab) => {
               if (tab.state === "hard-sleeping" && tab.id !== activeTabId) {
                 return null;
@@ -128,7 +135,7 @@ export default function App() {
                 <View
                   key={`${tab.id}:${tab.reloadToken}`}
                   pointerEvents={visible ? "auto" : "none"}
-                  style={[styles.webViewShell, visible ? styles.webViewVisible : styles.webViewHidden]}
+                  className={`absolute inset-0 ${visible ? "opacity-100" : "opacity-0"}`}
                 >
                   <WebView
                     ref={(instance) => {
@@ -140,17 +147,20 @@ export default function App() {
                     }
                     setSupportMultipleWindows={false}
                     source={{ uri: normalizeURL(tab.url) }}
-                    style={styles.webView}
+                    style={WEB_VIEW_STYLE}
                   />
                 </View>
               );
             })}
 
             {!activeTab ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No active tab</Text>
-                <TouchableOpacity onPress={() => createTab()} style={styles.emptyButton}>
-                  <Text style={styles.emptyButtonText}>Open a new tab</Text>
+              <View className="flex-1 items-center justify-center gap-[14px]">
+                <Text className="text-[22px] font-bold text-white">No active tab</Text>
+                <TouchableOpacity
+                  onPress={() => createTab()}
+                  className="rounded-full bg-cyan-400 px-[18px] py-3"
+                >
+                  <Text className="font-bold text-cyan-950">Open a new tab</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -160,102 +170,3 @@ export default function App() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    backgroundColor: "#020617"
-  },
-  orb: {
-    position: "absolute",
-    borderRadius: 9999
-  },
-  orbOne: {
-    width: 240,
-    height: 240,
-    top: -40,
-    right: -30,
-    backgroundColor: "rgba(34,211,238,0.16)"
-  },
-  orbTwo: {
-    width: 320,
-    height: 320,
-    bottom: 80,
-    left: -90,
-    backgroundColor: "rgba(249,115,22,0.10)"
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: "rgba(2,6,23,0.58)"
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 14
-  },
-  chrome: {
-    marginTop: 8,
-    padding: 18,
-    borderRadius: 28,
-    backgroundColor: "rgba(15,23,42,0.72)",
-    borderWidth: 1,
-    borderColor: "rgba(103,232,249,0.16)",
-    gap: 14
-  },
-  eyebrow: {
-    color: "#67e8f9",
-    textTransform: "uppercase",
-    letterSpacing: 1.4,
-    fontSize: 11,
-    fontWeight: "700"
-  },
-  title: {
-    color: "#f8fafc",
-    fontSize: 28,
-    lineHeight: 31,
-    fontWeight: "700"
-  },
-  viewport: {
-    flex: 1,
-    overflow: "hidden",
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: "rgba(148,163,184,0.12)",
-    backgroundColor: "rgba(2,6,23,0.82)"
-  },
-  webViewShell: {
-    ...StyleSheet.absoluteFillObject
-  },
-  webViewVisible: {
-    opacity: 1
-  },
-  webViewHidden: {
-    opacity: 0
-  },
-  webView: {
-    flex: 1,
-    backgroundColor: "#fff"
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 14
-  },
-  emptyTitle: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "700"
-  },
-  emptyButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: "#22d3ee"
-  },
-  emptyButtonText: {
-    color: "#082f49",
-    fontWeight: "700"
-  }
-});

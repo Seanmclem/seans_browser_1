@@ -1,6 +1,11 @@
+import type { CSSProperties } from "react";
 import { useTabStore } from "../../store/tabStore";
 import { Tab } from "./Tab";
-import styles from "./TabBar.module.css";
+
+type AppRegionStyle = CSSProperties & { WebkitAppRegion?: "drag" | "no-drag" };
+
+const DRAG_REGION_STYLE: AppRegionStyle = { WebkitAppRegion: "drag" };
+const NO_DRAG_REGION_STYLE: AppRegionStyle = { WebkitAppRegion: "no-drag" };
 
 export function TabBar() {
   const { activeTabId, setActiveTabId, removeTab, tabs } = useTabStore();
@@ -21,9 +26,15 @@ export function TabBar() {
   };
 
   return (
-    <div className={styles.tabBar}>
-      <div className={styles.dragStrip} />
-      <div className={styles.tabList}>
+    <div
+      className="relative grid grid-cols-[1fr_auto] items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]"
+      style={DRAG_REGION_STYLE}
+    >
+      <div className="absolute inset-0" style={DRAG_REGION_STYLE} />
+      <div
+        className="relative flex gap-[10px] overflow-x-auto pb-0.5"
+        style={NO_DRAG_REGION_STYLE}
+      >
         {tabs.map((tab) => (
           <Tab
             key={tab.id}
@@ -39,10 +50,14 @@ export function TabBar() {
         ))}
       </div>
 
-      <button className={styles.newTabBtn} onClick={() => void handleNewTab()} type="button">
+      <button
+        className="h-10 w-10 cursor-pointer rounded-[14px] border-0 bg-[linear-gradient(135deg,#22d3ee,#2563eb)] text-[24px] text-white"
+        onClick={() => void handleNewTab()}
+        style={NO_DRAG_REGION_STYLE}
+        type="button"
+      >
         +
       </button>
     </div>
   );
 }
-

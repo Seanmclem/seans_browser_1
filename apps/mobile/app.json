@@ -17,6 +17,12 @@
     "android": {
       "package": "com.seanclements.browser"
     },
-    "plugins": ["expo-dev-client"]
+    "plugins": ["expo-dev-client"],
+    "extra": {
+      "eas": {
+        "projectId": "f59c06ce-1713-429a-8d18-c2d8c85cdcfb"
+      }
+    },
+    "owner": "seanmclem"
   }
 }

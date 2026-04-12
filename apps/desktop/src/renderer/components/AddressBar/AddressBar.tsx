@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useTabStore } from "../../store/tabStore";
 import { useUIStore } from "../../store/uiStore";
-import styles from "./AddressBar.module.css";
 
 export function AddressBar() {
   const { activeTabId, tabs } = useTabStore();
@@ -31,11 +30,16 @@ export function AddressBar() {
   };
 
   return (
-    <form className={styles.addressBar} onSubmit={handleSubmit}>
-      <span className={styles.security}>{activeTab?.url.startsWith("https://") ? "Secure" : "Web"}</span>
+    <form
+      className="grid w-full grid-cols-[auto_1fr] items-center gap-[10px] rounded-[18px] border border-sky-300/15 bg-slate-900/85 px-[14px] py-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      onSubmit={handleSubmit}
+    >
+      <span className="rounded-full bg-cyan-400/10 px-[10px] py-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-300">
+        {activeTab?.url.startsWith("https://") ? "Secure" : "Web"}
+      </span>
       <input
         ref={inputRef}
-        className={styles.urlInput}
+        className="w-full border-0 bg-transparent text-[14px] text-slate-50 outline-none"
         value={isFocused ? inputValue : activeTab?.url ?? ""}
         onBlur={() => setIsFocused(false)}
         onChange={(event) => setInputValue(event.target.value)}
@@ -46,4 +50,3 @@ export function AddressBar() {
     </form>
   );
 }
-

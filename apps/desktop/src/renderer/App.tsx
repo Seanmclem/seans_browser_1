@@ -3,7 +3,6 @@ import { AddressBar } from "./components/AddressBar/AddressBar";
 import { TabBar } from "./components/TabBar/TabBar";
 import { Toolbar } from "./components/Toolbar/Toolbar";
 import { useTabManager } from "./hooks/useTabManager";
-import styles from "./App.module.css";
 
 export default function App() {
   useTabManager();
@@ -29,10 +28,13 @@ export default function App() {
   }, []);
 
   return (
-    <div className={styles.shell}>
-      <header ref={chromeRef} className={styles.chrome}>
+    <div className="min-h-screen bg-transparent text-slate-50">
+      <header
+        ref={chromeRef}
+        className="fixed inset-x-0 top-0 z-[100] border-b border-slate-400/10 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.18),transparent_30%),linear-gradient(180deg,rgb(15,23,42),rgb(15,23,42))]"
+      >
         <TabBar />
-        <div className={styles.controls}>
+        <div className="grid grid-cols-[auto_1fr] items-center gap-[14px] px-[18px] pb-3">
           <Toolbar />
           <AddressBar />
         </div>
