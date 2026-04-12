@@ -1,14 +1,22 @@
-import { BrowserWindow, NativeImage, WebContents, WebContentsView } from "electron";
+import {
+  BrowserWindow,
+  type Event as ElectronEvent,
+  NativeImage,
+  WebContents,
+  WebContentsView
+} from "electron";
 import { EventEmitter } from "node:events";
 import { evaluateSleepState, normalizeURL, TabId } from "@seans-browser/browser-core";
 import { HistoryManager } from "./HistoryManager";
 import { SessionManager } from "./SessionManager";
-import { SerializedDesktopTab, TabRecord } from "./types";
+import { DetachedTab, SerializedDesktopTab, TabRecord } from "./types";
 
 const DEFAULT_URL = "https://duckduckgo.com/";
+type TabListenerCleanup = () => void;
 
 export class TabManager extends EventEmitter {
   private readonly tabs = new Map<TabId, TabRecord>();
+  private readonly tabListenerCleanups = new Map<TabId, TabListenerCleanup[]>();
   private activeTabId: TabId | null = null;
   private uiHeight = 96;
 
@@ -122,6 +130,8 @@ export class TabManager extends EventEmitter {
       return;
     }
 
+    this.cleanupTabListeners(id);
+
     if (tab.view) {
       try {
         this.win.contentView.removeChildView(tab.view);
@@ -145,6 +155,56 @@ export class TabManager extends EventEmitter {
         await this.setActiveTab(remainingTabs[Math.max(remainingTabs.length - 1, 0)]);
       }
     }
+  }
+
+  async detachTab(id: TabId): Promise<DetachedTab | null> {
+    const tab = this.tabs.get(id);
+    if (!tab?.view) {
+      return null;
+    }
+
+    const view = tab.view;
+    const wasActive = this.activeTabId === id;
+    this.cleanupTabListeners(id);
+
+    try {
+      this.win.contentView.removeChildView(view);
+    } catch {
+      // Ignore detached views.
+    }
+
+    view.setVisible(false);
+    view.webContents.setBackgroundThrottling(true);
+    this.tabs.delete(id);
+    this.emit("tab:removed", id);
+
+    if (wasActive) {
+      this.activeTabId = null;
+      const nextTabId = Array.from(this.tabs.keys()).at(-1);
+      if (nextTabId) {
+        await this.setActiveTab(nextTabId);
+      }
+    }
+
+    tab.state = "awake";
+    return { record: tab, view, wasActive };
+  }
+
+  async adoptDetachedTab(detachedTab: DetachedTab): Promise<TabId> {
+    const { record, view } = detachedTab;
+    record.view = view;
+    record.state = "awake";
+    record.lastActive = Date.now();
+
+    this.tabs.set(record.id, record);
+    this.win.contentView.addChildView(view);
+    this.onPageViewAttached?.();
+    this.positionView(view);
+    this.attachWebContentsListeners(record.id, view);
+
+    this.emit("tab:added", this.serializeTab(record));
+    await this.setActiveTab(record.id);
+    return record.id;
   }
 
   async closeActiveTab(): Promise<void> {
@@ -237,6 +297,7 @@ export class TabManager extends EventEmitter {
     }
 
     try {
+      this.cleanupTabListeners(id);
       this.win.contentView.removeChildView(tab.view);
     } catch {
       // Ignore detached views.
@@ -311,33 +372,52 @@ export class TabManager extends EventEmitter {
 
   private attachWebContentsListeners(id: TabId, view: WebContentsView): void {
     const contents = view.webContents;
+    const cleanups: TabListenerCleanup[] = [];
+
+    this.cleanupTabListeners(id);
 
     contents.setWindowOpenHandler(({ url }) => {
       this.createTab(url);
       return { action: "deny" };
     });
+    cleanups.push(() => {
+      contents.setWindowOpenHandler(() => ({ action: "deny" }));
+    });
 
-    contents.on("page-title-updated", (event, title) => {
+    const onPageTitleUpdated = (event: ElectronEvent, title: string) => {
       event.preventDefault();
       this.patchTab(id, { title });
-    });
+    };
+    contents.on("page-title-updated", onPageTitleUpdated);
+    cleanups.push(() => contents.off("page-title-updated", onPageTitleUpdated));
 
-    contents.on("page-favicon-updated", (_event, favicons) => {
+    const onPageFaviconUpdated = (_event: ElectronEvent, favicons: string[]) => {
       this.patchTab(id, { favicon: favicons[0] ?? null });
-    });
+    };
+    contents.on("page-favicon-updated", onPageFaviconUpdated);
+    cleanups.push(() => contents.off("page-favicon-updated", onPageFaviconUpdated));
 
-    contents.on("did-start-loading", () => {
+    const onDidStartLoading = () => {
       this.patchTab(id, { isLoading: true });
       this.syncNavigationState(id);
-    });
+    };
+    contents.on("did-start-loading", onDidStartLoading);
+    cleanups.push(() => contents.off("did-start-loading", onDidStartLoading));
 
-    contents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    const onDidFailLoad = (
+      _event: ElectronEvent,
+      errorCode: number,
+      errorDescription: string,
+      validatedURL: string
+    ) => {
       console.warn(
         `[TabManager] failed loading ${id}: ${errorCode} ${errorDescription} ${validatedURL}`
       );
-    });
+    };
+    contents.on("did-fail-load", onDidFailLoad);
+    cleanups.push(() => contents.off("did-fail-load", onDidFailLoad));
 
-    contents.on("did-stop-loading", () => {
+    const onDidStopLoading = () => {
       const tab = this.tabs.get(id);
       if (!tab) {
         return;
@@ -352,21 +432,43 @@ export class TabManager extends EventEmitter {
         canGoBack: contents.canGoBack(),
         canGoForward: contents.canGoForward()
       });
-    });
+    };
+    contents.on("did-stop-loading", onDidStopLoading);
+    cleanups.push(() => contents.off("did-stop-loading", onDidStopLoading));
 
-    contents.on("did-navigate", (_event, url) => {
+    const onDidNavigate = (_event: ElectronEvent, url: string) => {
       this.patchTab(id, { url });
       this.syncNavigationState(id);
-    });
+    };
+    contents.on("did-navigate", onDidNavigate);
+    cleanups.push(() => contents.off("did-navigate", onDidNavigate));
 
-    contents.on("did-navigate-in-page", (_event, url) => {
+    const onDidNavigateInPage = (_event: ElectronEvent, url: string) => {
       this.patchTab(id, { url });
       this.syncNavigationState(id);
-    });
+    };
+    contents.on("did-navigate-in-page", onDidNavigateInPage);
+    cleanups.push(() => contents.off("did-navigate-in-page", onDidNavigateInPage));
 
-    contents.on("render-process-gone", () => {
+    const onRenderProcessGone = () => {
       this.patchTab(id, { state: "crashed", isLoading: false });
-    });
+    };
+    contents.on("render-process-gone", onRenderProcessGone);
+    cleanups.push(() => contents.off("render-process-gone", onRenderProcessGone));
+
+    this.tabListenerCleanups.set(id, cleanups);
+  }
+
+  private cleanupTabListeners(id: TabId): void {
+    const cleanups = this.tabListenerCleanups.get(id);
+    if (!cleanups) {
+      return;
+    }
+
+    for (const cleanup of cleanups) {
+      cleanup();
+    }
+    this.tabListenerCleanups.delete(id);
   }
 
   private syncNavigationState(id: TabId): void {

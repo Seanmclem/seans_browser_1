@@ -31,7 +31,7 @@ export default function App() {
     <div className="min-h-screen bg-transparent text-slate-50">
       <header
         ref={chromeRef}
-        className="fixed inset-x-0 top-0 z-[100] border-b border-slate-400/10 bg-slate-900"
+        className="app-region-drag fixed inset-x-0 top-0 z-[100] border-b border-slate-400/10 bg-slate-900"
       >
         <TabBar />
         <div className="grid grid-cols-[auto_1fr] items-center gap-[14px] px-[18px] pb-3">

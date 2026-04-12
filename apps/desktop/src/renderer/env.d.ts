@@ -12,6 +12,8 @@ interface BrowserAPI {
     close: (id: TabId) => Promise<void>;
     activate: (id: TabId) => Promise<void>;
     list: () => Promise<SerializedTab[]>;
+    moveToNewWindow: (id: TabId) => Promise<void>;
+    showContextMenu: (id: TabId, position: { x: number; y: number }) => Promise<void>;
     sleep: (id: TabId) => Promise<void>;
   };
   nav: {

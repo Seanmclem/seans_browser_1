@@ -1,135 +1,95 @@
 import { app, BrowserWindow, WebContents } from "electron";
+import { BrowserWindowController } from "./BrowserWindowController";
 import { DownloadManager } from "./DownloadManager";
 import { HistoryManager } from "./HistoryManager";
 import { registerIPCHandlers } from "./IPCHandler";
 import { SessionManager } from "./SessionManager";
-import { SleepManager } from "./SleepManager";
-import { TabManager } from "./TabManager";
-import { WindowManager } from "./WindowManager";
-
-let mainWindow: BrowserWindow | null = null;
-let sleepManager: SleepManager | null = null;
-let tabManager: TabManager | null = null;
 
 app.commandLine.appendSwitch("js-flags", "--max-old-space-size=512");
 
-async function createMainWindow(): Promise<void> {
-  const windowManager = new WindowManager();
-  const sessionManager = new SessionManager();
-  const historyManager = new HistoryManager();
+const WINDOW_CASCADE_OFFSET = 32;
+const windowControllers = new Map<number, BrowserWindowController>();
+let sessionManager: SessionManager;
+let historyManager: HistoryManager;
 
-  new DownloadManager(sessionManager.getSession());
-
-  mainWindow = windowManager.createMainWindow();
-  const chromeWebContents = windowManager.getChromeWebContents();
-  tabManager = new TabManager(mainWindow, sessionManager, historyManager, () => {
-    windowManager.bringChromeToFront();
-  });
-  sleepManager = new SleepManager(tabManager);
-
-  registerIPCHandlers(chromeWebContents, tabManager, sleepManager, historyManager, (height) => {
-    windowManager.setChromeHeight(height);
-  });
-
-  mainWindow.on("resize", () => {
-    windowManager.reflowViews();
-    tabManager?.reflowViews();
-  });
-  mainWindow.on("closed", () => {
-    sleepManager?.stop();
-    mainWindow = null;
-  });
-
-  registerWindowShortcuts(chromeWebContents, tabManager);
-  sleepManager.start();
-  tabManager.createTab();
+interface CreateMainWindowOptions {
+  createDefaultTab?: boolean;
 }
 
-function registerWindowShortcuts(chromeWebContents: WebContents, tabs: TabManager): void {
-  chromeWebContents.on("before-input-event", (event, input) => {
-    if (input.type !== "keyDown") {
-      return;
-    }
-
-    const isCommand = process.platform === "darwin" ? input.meta : input.control;
-    const key = input.key.toLowerCase();
-
-    if (!isCommand) {
-      return;
-    }
-
-    if (key === "t") {
-      event.preventDefault();
-      tabs.createTab();
-      return;
-    }
-
-    if (key === "w") {
-      event.preventDefault();
-      void tabs.closeActiveTab();
-      return;
-    }
-
-    if (key === "l") {
-      event.preventDefault();
-      chromeWebContents.send("ui:focus-address-bar");
-      return;
-    }
-
-    if (key === "r") {
-      event.preventDefault();
-      const active = tabs.getActiveTabId();
-      if (active) {
-        void tabs.reload(active);
-      }
-      return;
-    }
-
-    if (key === "[") {
-      event.preventDefault();
-      const active = tabs.getActiveTabId();
-      if (active) {
-        void tabs.goBack(active);
-      }
-      return;
-    }
-
-    if (key === "]") {
-      event.preventDefault();
-      const active = tabs.getActiveTabId();
-      if (active) {
-        void tabs.goForward(active);
-      }
-      return;
-    }
-
-    if (/^[1-9]$/.test(key)) {
-      event.preventDefault();
-      void tabs.switchToTabAtIndex(Number(key) - 1);
-    }
+function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindowController {
+  const controller = new BrowserWindowController({
+    historyManager,
+    sessionManager,
+    onClosed: (closedController) => {
+      windowControllers.delete(closedController.chromeWebContents.id);
+    },
+    onMoveTabToNewWindow: moveTabToNewWindow
   });
+  windowControllers.set(controller.chromeWebContents.id, controller);
+
+  if (options.createDefaultTab !== false) {
+    controller.createInitialTab();
+  }
+
+  return controller;
+}
+
+async function moveTabToNewWindow(
+  sourceController: BrowserWindowController,
+  tabId: string
+): Promise<void> {
+  const detachedTab = await sourceController.tabManager.detachTab(tabId);
+  if (!detachedTab) {
+    return;
+  }
+
+  const targetController = createMainWindow({ createDefaultTab: false });
+  const [sourceX, sourceY] = sourceController.window.getPosition();
+  targetController.window.setPosition(
+    sourceX + WINDOW_CASCADE_OFFSET,
+    sourceY + WINDOW_CASCADE_OFFSET
+  );
+  await targetController.adoptDetachedTab(detachedTab);
+
+  if (sourceController.tabManager.getTabs().length === 0) {
+    sourceController.window.close();
+  }
+
+  targetController.window.focus();
+}
+
+function getControllerForSender(sender: WebContents): BrowserWindowController | undefined {
+  return windowControllers.get(sender.id);
 }
 
 app.whenReady().then(() => {
-  void createMainWindow();
+  sessionManager = new SessionManager();
+  historyManager = new HistoryManager();
+  new DownloadManager(sessionManager.getSession());
+  registerIPCHandlers(getControllerForSender);
+  createMainWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      void createMainWindow();
+      createMainWindow();
     }
   });
 });
 
 app.on("render-process-gone", (_event, contents, details) => {
   console.warn(`[Electron] Renderer crashed: ${details.reason}`);
-  tabManager?.markCrashedByWebContents(contents);
+  for (const controller of windowControllers.values()) {
+    controller.tabManager.markCrashedByWebContents(contents);
+  }
 });
 
 setInterval(() => {
   const heapUsedMb = process.memoryUsage().heapUsed / 1024 / 1024;
   if (heapUsedMb > 1500) {
     console.warn("[Memory] High pressure detected, escalating sleeping tabs.");
-    void sleepManager?.forceEscalateSoftSleepingTabs();
+    for (const controller of windowControllers.values()) {
+      void controller.sleepManager.forceEscalateSoftSleepingTabs();
+    }
   }
 }, 30_000);
 

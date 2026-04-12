@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import type { SerializedTab } from "@seans-browser/browser-core";
 import { SleepOverlay } from "../SleepOverlay/SleepOverlay";
 
@@ -6,6 +7,7 @@ interface TabProps {
   isActive: boolean;
   onActivate: () => void;
   onClose: () => void;
+  onContextMenu: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 const sleepIcons: Record<string, string> = {
@@ -14,10 +16,10 @@ const sleepIcons: Record<string, string> = {
   crashed: "!"
 };
 
-export function Tab({ tab, isActive, onActivate, onClose }: TabProps) {
+export function Tab({ tab, isActive, onActivate, onClose, onContextMenu }: TabProps) {
   const sleepIcon = sleepIcons[tab.state];
   const tabClassName = [
-    "group relative grid min-w-[220px] max-w-[280px] cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
+    "app-region-no-drag group relative grid min-w-[220px] max-w-[280px] cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
     isActive
       ? "border-cyan-200/80 bg-sky-600 text-slate-50 hover:border-cyan-200/80 hover:bg-sky-600"
       : "border-slate-500/45 bg-slate-700/70 text-slate-300 hover:border-slate-300/45 hover:bg-slate-700/95",
@@ -28,6 +30,7 @@ export function Tab({ tab, isActive, onActivate, onClose }: TabProps) {
     <button
       className={tabClassName}
       onClick={onActivate}
+      onContextMenu={onContextMenu}
       title={tab.title}
       type="button"
     >

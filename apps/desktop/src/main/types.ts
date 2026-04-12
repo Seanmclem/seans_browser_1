@@ -17,5 +17,10 @@ export interface SerializedDesktopTab extends SerializedTab {
   isLoading: boolean;
 }
 
-export type TabEventPayload = SerializedDesktopTab | TabId;
+export interface DetachedTab {
+  record: TabRecord;
+  view: WebContentsView;
+  wasActive: boolean;
+}
 
+export type TabEventPayload = SerializedDesktopTab | TabId;

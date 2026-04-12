@@ -1,58 +1,100 @@
-import { WebContents, ipcMain } from "electron";
-import { HistoryManager } from "./HistoryManager";
-import { SleepManager } from "./SleepManager";
-import { TabManager } from "./TabManager";
+import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
+import { BrowserWindowController } from "./BrowserWindowController";
 
-export function registerIPCHandlers(
-  chromeWebContents: WebContents,
-  tabManager: TabManager,
-  sleepManager: SleepManager,
-  historyManager: HistoryManager,
-  setChromeHeight: (height: number) => void
-): void {
-  tabManager.on("tab:added", (tab) => {
-    chromeWebContents.send("tab:added", tab);
+type ControllerResolver = (sender: WebContents) => BrowserWindowController | undefined;
+interface ContextMenuPosition {
+  x: number;
+  y: number;
+}
+
+export function registerIPCHandlers(resolveController: ControllerResolver): void {
+  const getController = (event: IpcMainInvokeEvent): BrowserWindowController => {
+    const controller = resolveController(event.sender);
+    if (!controller) {
+      throw new Error(`No browser window controller for WebContents ${event.sender.id}`);
+    }
+    return controller;
+  };
+
+  ipcMain.handle("tab:create", async (event, url?: string) => {
+    return getController(event).tabManager.createTab(url);
   });
-  tabManager.on("tab:updated", (tab) => {
-    chromeWebContents.send("tab:updated", tab);
+  ipcMain.handle("tab:close", async (event, id: string) => {
+    await getController(event).tabManager.closeTab(id);
   });
-  tabManager.on("tab:removed", (id) => {
-    chromeWebContents.send("tab:removed", id);
+  ipcMain.handle("tab:activate", async (event, id: string) => {
+    await getController(event).tabManager.setActiveTab(id);
   });
-  tabManager.on("tab:activated", (id) => {
-    chromeWebContents.send("tab:activated", id);
+  ipcMain.handle("tab:list", (event) => getController(event).tabManager.getSerializedTabs());
+  ipcMain.handle("tab:sleep", async (event, id: string) => {
+    await getController(event).sleepManager.softSleep(id);
+  });
+  ipcMain.handle("tab:moveToNewWindow", async (event, id: string) => {
+    await getController(event).moveTabToNewWindow(id);
+  });
+  ipcMain.handle(
+    "tab:showContextMenu",
+    (event, id: string, position: ContextMenuPosition) => {
+      const controller = getController(event);
+      const tab = controller.tabManager.getTab(id);
+      if (!tab) {
+        return;
+      }
+
+      const menu = Menu.buildFromTemplate([
+        {
+          label: "Move Tab to New Window",
+          click: () => {
+            void controller.moveTabToNewWindow(id);
+          }
+        },
+        {
+          label: "Reload Tab",
+          click: () => {
+            void controller.tabManager.reload(id);
+          }
+        },
+        {
+          enabled: controller.tabManager.getActiveTabId() !== id,
+          label: "Sleep Tab",
+          click: () => {
+            void controller.sleepManager.softSleep(id);
+          }
+        },
+        { type: "separator" },
+        {
+          label: "Close Tab",
+          click: () => {
+            void controller.tabManager.closeTab(id);
+          }
+        }
+      ]);
+
+      menu.popup({
+        window: controller.window,
+        x: Math.round(position.x),
+        y: Math.round(position.y)
+      });
+    }
+  );
+
+  ipcMain.handle("nav:back", async (event, id: string) => {
+    await getController(event).tabManager.goBack(id);
+  });
+  ipcMain.handle("nav:forward", async (event, id: string) => {
+    await getController(event).tabManager.goForward(id);
+  });
+  ipcMain.handle("nav:reload", async (event, id: string) => {
+    await getController(event).tabManager.reload(id);
+  });
+  ipcMain.handle("nav:loadURL", async (event, id: string, url: string) => {
+    await getController(event).tabManager.navigateTo(id, url);
   });
 
-  ipcMain.handle("tab:create", async (_event, url?: string) => {
-    return tabManager.createTab(url);
-  });
-  ipcMain.handle("tab:close", async (_event, id: string) => {
-    await tabManager.closeTab(id);
-  });
-  ipcMain.handle("tab:activate", async (_event, id: string) => {
-    await tabManager.setActiveTab(id);
-  });
-  ipcMain.handle("tab:list", () => tabManager.getSerializedTabs());
-  ipcMain.handle("tab:sleep", async (_event, id: string) => {
-    await sleepManager.softSleep(id);
-  });
-
-  ipcMain.handle("nav:back", async (_event, id: string) => {
-    await tabManager.goBack(id);
-  });
-  ipcMain.handle("nav:forward", async (_event, id: string) => {
-    await tabManager.goForward(id);
-  });
-  ipcMain.handle("nav:reload", async (_event, id: string) => {
-    await tabManager.reload(id);
-  });
-  ipcMain.handle("nav:loadURL", async (_event, id: string, url: string) => {
-    await tabManager.navigateTo(id, url);
-  });
-
-  ipcMain.handle("history:search", (_event, query: string) => historyManager.search(query));
-  ipcMain.handle("layout:setChromeHeight", (_event, height: number) => {
-    setChromeHeight(height);
-    tabManager.setChromeHeight(height);
+  ipcMain.handle("history:search", (event, query: string) =>
+    getController(event).historyManager.search(query)
+  );
+  ipcMain.handle("layout:setChromeHeight", (event, height: number) => {
+    getController(event).setChromeHeight(height);
   });
 }

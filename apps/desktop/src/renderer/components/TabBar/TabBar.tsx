@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { useTabStore } from "../../store/tabStore";
 import { Tab } from "./Tab";
 
@@ -25,6 +25,14 @@ export function TabBar() {
     removeTab(id);
   };
 
+  const handleContextMenu = (event: MouseEvent<HTMLButtonElement>, tabId: string) => {
+    event.preventDefault();
+    void window.browserAPI.tab.showContextMenu(tabId, {
+      x: event.clientX,
+      y: event.clientY
+    });
+  };
+
   return (
     <div
       className="relative grid grid-cols-[1fr_auto] items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]"
@@ -32,7 +40,6 @@ export function TabBar() {
     >
       <div
         className="relative flex gap-[10px] overflow-x-auto pb-0.5"
-        style={NO_DRAG_REGION_STYLE}
       >
         {tabs.map((tab) => (
           <Tab
@@ -45,6 +52,7 @@ export function TabBar() {
             onClose={() => {
               void handleClose(tab.id);
             }}
+            onContextMenu={(event) => handleContextMenu(event, tab.id)}
           />
         ))}
       </div>

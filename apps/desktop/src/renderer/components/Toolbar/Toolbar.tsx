@@ -34,7 +34,7 @@ export function Toolbar() {
   };
 
   return (
-    <div className="flex gap-[10px]">
+    <div className="app-region-no-drag flex gap-[10px]">
       <button
         className={TOOL_CLASS}
         disabled={!activeTab?.canGoBack}
