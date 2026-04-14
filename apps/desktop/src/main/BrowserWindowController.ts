@@ -1,5 +1,8 @@
 import { BrowserWindow, WebContents } from "electron";
+import type { OpenTabRecord, OpenTabsWindowRecord } from "@seans-browser/browser-core";
+import type { BrowserDataManager } from "./BrowserDataManager";
 import { HistoryManager } from "./HistoryManager";
+import { HISTORY_PAGE_URL } from "./InternalPages";
 import { SessionManager } from "./SessionManager";
 import { SleepManager } from "./SleepManager";
 import { TabManager } from "./TabManager";
@@ -7,23 +10,33 @@ import { WindowManager } from "./WindowManager";
 import type { DetachedTab, TabStripPlacement } from "./types";
 
 interface BrowserWindowControllerOptions {
+  dataManager: BrowserDataManager;
   historyManager: HistoryManager;
+  initialTabStripPlacement: TabStripPlacement;
   onClosed: (controller: BrowserWindowController) => void;
   onMoveTabToNewWindow: (controller: BrowserWindowController, tabId: string) => Promise<void>;
   sessionManager: SessionManager;
 }
 
 export class BrowserWindowController {
+  readonly dataManager: BrowserDataManager;
   readonly historyManager: HistoryManager;
   readonly window: BrowserWindow;
-  readonly windowManager = new WindowManager();
+  readonly windowManager: WindowManager;
   readonly tabManager: TabManager;
   readonly sleepManager: SleepManager;
   readonly chromeWebContents: WebContents;
   readonly chromeWebContentses: WebContents[];
+  private readonly openTabsWindowRecord: OpenTabsWindowRecord;
   private isDisposed = false;
+  private openTabsPersistTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly options: BrowserWindowControllerOptions) {
+    this.dataManager = options.dataManager;
+    this.windowManager = new WindowManager(options.initialTabStripPlacement);
+    this.openTabsWindowRecord = options.dataManager.openTabs.createOpenTabsWindow({
+      placement: options.initialTabStripPlacement
+    });
     this.historyManager = options.historyManager;
     this.window = this.windowManager.createMainWindow();
     this.chromeWebContents = this.windowManager.getChromeWebContents();
@@ -70,6 +83,8 @@ export class BrowserWindowController {
   setTabStripPlacement(placement: TabStripPlacement): void {
     this.windowManager.setTabStripPlacement(placement);
     this.syncPageInsets();
+    void this.options.dataManager.setTabStripPlacement(placement);
+    this.scheduleOpenTabsPersistence();
     this.sendToChrome("layout:tabStripPlacementChanged", placement);
   }
 
@@ -92,18 +107,23 @@ export class BrowserWindowController {
   private forwardTabEvents(): void {
     this.tabManager.on("tab:added", (tab) => {
       this.sendToChrome("tab:added", tab);
+      this.scheduleOpenTabsPersistence();
     });
     this.tabManager.on("tab:updated", (tab) => {
       this.sendToChrome("tab:updated", tab);
+      this.scheduleOpenTabsPersistence();
     });
     this.tabManager.on("tab:removed", (id) => {
       this.sendToChrome("tab:removed", id);
+      this.scheduleOpenTabsPersistence();
     });
     this.tabManager.on("tab:activated", (id) => {
       this.sendToChrome("tab:activated", id);
+      this.scheduleOpenTabsPersistence();
     });
     this.tabManager.on("tab:reordered", (tabs) => {
       this.sendToChrome("tab:reordered", tabs);
+      this.scheduleOpenTabsPersistence();
     });
   }
 
@@ -126,8 +146,99 @@ export class BrowserWindowController {
       return;
     }
     this.isDisposed = true;
+    if (this.openTabsPersistTimer) {
+      clearTimeout(this.openTabsPersistTimer);
+      this.openTabsPersistTimer = null;
+    }
+    void this.persistOpenTabsSnapshot().catch((error: unknown) => {
+      console.warn("[OpenTabs] Failed to persist final tab snapshot.", error);
+    });
     this.sleepManager.stop();
     this.tabManager.destroyAllTabs();
+  }
+
+  private scheduleOpenTabsPersistence(): void {
+    if (this.isDisposed) {
+      return;
+    }
+
+    if (this.openTabsPersistTimer) {
+      clearTimeout(this.openTabsPersistTimer);
+    }
+
+    this.openTabsPersistTimer = setTimeout(() => {
+      this.openTabsPersistTimer = null;
+      void this.persistOpenTabsSnapshot().catch((error: unknown) => {
+        console.warn("[OpenTabs] Failed to persist tab snapshot.", error);
+      });
+    }, 150);
+  }
+
+  private async persistOpenTabsSnapshot(): Promise<void> {
+    const now = new Date().toISOString();
+    const tabs = this.tabManager.getSerializedTabs();
+    const activeTabId = this.tabManager.getActiveTabId();
+    const windowRecord: OpenTabsWindowRecord = {
+      ...this.openTabsWindowRecord,
+      activeTabId,
+      placement: this.windowManager.getTabStripPlacement(),
+      title: tabs.find((tab) => tab.id === activeTabId)?.title ?? null,
+      sync: {
+        ...this.openTabsWindowRecord.sync,
+        deletedAt: null,
+        updatedAt: now
+      }
+    };
+
+    await this.options.dataManager.openTabs.upsertOpenTabsWindow(windowRecord);
+
+    const existingTabs = new Map(
+      (await this.options.dataManager.openTabs.listOpenTabs(this.openTabsWindowRecord.sync.id)).map(
+        (tab) => [tab.sync.id, tab]
+      )
+    );
+    const currentTabIds = new Set(tabs.map((tab) => tab.id));
+
+    for (const [position, tab] of tabs.entries()) {
+      const existing = existingTabs.get(tab.id);
+      const record: OpenTabRecord = existing
+        ? {
+            ...existing,
+            favicon: tab.favicon,
+            lastActiveAt: new Date(tab.lastActive).toISOString(),
+            pinned: tab.pinned,
+            position,
+            savedScrollY: tab.savedScrollY,
+            state: tab.state,
+            title: tab.title,
+            url: tab.url,
+            sync: {
+              ...existing.sync,
+              deletedAt: null,
+              updatedAt: now
+            }
+          }
+        : this.options.dataManager.openTabs.createOpenTab({
+            favicon: tab.favicon,
+            id: tab.id,
+            lastActiveAt: new Date(tab.lastActive).toISOString(),
+            pinned: tab.pinned,
+            position,
+            savedScrollY: tab.savedScrollY,
+            state: tab.state,
+            title: tab.title,
+            url: tab.url,
+            windowId: this.openTabsWindowRecord.sync.id
+          });
+
+      await this.options.dataManager.openTabs.upsertOpenTab(record);
+    }
+
+    for (const existing of existingTabs.values()) {
+      if (!currentTabIds.has(existing.sync.id)) {
+        await this.options.dataManager.openTabs.tombstoneOpenTab(existing.sync.id, now);
+      }
+    }
   }
 
   private registerWindowShortcuts(): void {
@@ -168,6 +279,12 @@ export class BrowserWindowController {
           if (active) {
             void this.tabManager.reload(active);
           }
+          return;
+        }
+
+        if (key === "y") {
+          event.preventDefault();
+          this.tabManager.createTab(HISTORY_PAGE_URL);
           return;
         }
 

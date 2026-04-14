@@ -1,25 +1,40 @@
-import { app, BrowserWindow, WebContents } from "electron";
+import { app, BrowserWindow, protocol, WebContents } from "electron";
+import { BrowserDataManager } from "./BrowserDataManager";
 import { BrowserWindowController } from "./BrowserWindowController";
 import { DownloadManager } from "./DownloadManager";
-import { HistoryManager } from "./HistoryManager";
+import { INTERNAL_PAGE_SCHEME, registerInternalPages } from "./InternalPages";
 import { registerIPCHandlers } from "./IPCHandler";
 import { SessionManager } from "./SessionManager";
 
 app.commandLine.appendSwitch("js-flags", "--max-old-space-size=512");
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: INTERNAL_PAGE_SCHEME,
+    privileges: {
+      secure: true,
+      standard: true,
+      supportFetchAPI: true
+    }
+  }
+]);
 
 const WINDOW_CASCADE_OFFSET = 32;
 const windowControllers = new Map<number, BrowserWindowController>();
 const windowControllersByWindowId = new Map<number, BrowserWindowController>();
+let dataManager: BrowserDataManager;
 let sessionManager: SessionManager;
-let historyManager: HistoryManager;
 
 interface CreateMainWindowOptions {
   createDefaultTab?: boolean;
 }
 
-function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindowController {
+async function createMainWindow(
+  options: CreateMainWindowOptions = {}
+): Promise<BrowserWindowController> {
   const controller = new BrowserWindowController({
-    historyManager,
+    dataManager,
+    historyManager: dataManager.history,
+    initialTabStripPlacement: await dataManager.getTabStripPlacement(),
     sessionManager,
     onClosed: (closedController) => {
       for (const contents of closedController.chromeWebContentses) {
@@ -50,7 +65,7 @@ async function moveTabToNewWindow(
     return;
   }
 
-  const targetController = createMainWindow({ createDefaultTab: false });
+  const targetController = await createMainWindow({ createDefaultTab: false });
   const [sourceX, sourceY] = sourceController.window.getPosition();
   targetController.window.setPosition(
     sourceX + WINDOW_CASCADE_OFFSET,
@@ -81,14 +96,15 @@ function getUniqueControllers(): BrowserWindowController[] {
 
 app.whenReady().then(() => {
   sessionManager = new SessionManager();
-  historyManager = new HistoryManager();
+  dataManager = new BrowserDataManager();
+  registerInternalPages(sessionManager.getSession(), dataManager);
   new DownloadManager(sessionManager.getSession());
   registerIPCHandlers(getControllerForSender);
-  createMainWindow();
+  void createMainWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+      void createMainWindow();
     }
   });
 });

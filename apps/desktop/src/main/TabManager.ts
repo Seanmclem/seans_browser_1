@@ -17,7 +17,7 @@ import {
   TabRecord
 } from "./types";
 
-const DEFAULT_URL = "https://duckduckgo.com/";
+const DEFAULT_URL = process.env.SEANS_BROWSER_START_URL ?? "https://duckduckgo.com/";
 type TabListenerCleanup = () => void;
 
 export class TabManager extends EventEmitter {

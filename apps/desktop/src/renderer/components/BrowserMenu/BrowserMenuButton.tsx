@@ -70,7 +70,6 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
 
   const changeTabPlacement = async (placement: TabStripPlacement) => {
     setTabStripPlacement(placement);
-    window.localStorage.setItem("seans-browser:tabStripPlacement", placement);
     await window.browserAPI.layout.setTabStripPlacement(placement);
   };
 
@@ -102,6 +101,22 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             label="New Tab"
             shortcut="⌘T"
             onClick={() => runBrowserMenuAction(handleNewTab)}
+          />
+          <BrowserMenuItem
+            label="History"
+            shortcut="⌘Y"
+            onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openHistory())}
+          />
+          <BrowserMenuItem
+            disabled={!activeTabId || isInternalOrBlankPage(activeTab?.url)}
+            label="Bookmark This Page"
+            onClick={() =>
+              runBrowserMenuAction(() => window.browserAPI.browser.addActiveTabToFavorites())
+            }
+          />
+          <BrowserMenuItem
+            label="Favorites"
+            onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openFavorites())}
           />
           <div className="my-1 h-px bg-slate-700/80" />
           <BrowserMenuItem
@@ -178,6 +193,10 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
       ) : null}
     </>
   );
+}
+
+function isInternalOrBlankPage(url?: string): boolean {
+  return !url || url.startsWith("about:") || url.startsWith("seans-browser://");
 }
 
 interface BrowserMenuItemProps {

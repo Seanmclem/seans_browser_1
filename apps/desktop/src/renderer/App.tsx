@@ -8,7 +8,7 @@ import { useUIStore, type TabStripPlacement } from "./store/uiStore";
 
 type ChromeSurface = "main" | "side-tabs";
 
-const TAB_PLACEMENT_STORAGE_KEY = "seans-browser:tabStripPlacement";
+const LEGACY_TAB_PLACEMENT_STORAGE_KEY = "seans-browser:tabStripPlacement";
 
 export default function App() {
   useTabManager();
@@ -95,25 +95,21 @@ function useTabStripPlacementSync(isMainSurface: boolean): void {
       }
 
       setTabStripPlacement(placement);
-      if (isMainSurface) {
-        window.localStorage.setItem(TAB_PLACEMENT_STORAGE_KEY, placement);
-      }
     };
 
     void window.browserAPI.layout.getTabStripPlacement().then(async (placement) => {
-      let nextPlacement = placement;
-      const savedPlacement = isMainSurface
-        ? window.localStorage.getItem(TAB_PLACEMENT_STORAGE_KEY)
+      const legacyPlacement = isMainSurface
+        ? window.localStorage.getItem(LEGACY_TAB_PLACEMENT_STORAGE_KEY)
         : null;
 
-      if (isTabStripPlacement(savedPlacement)) {
-        nextPlacement = savedPlacement;
+      if (isTabStripPlacement(legacyPlacement)) {
+        window.localStorage.removeItem(LEGACY_TAB_PLACEMENT_STORAGE_KEY);
+        await window.browserAPI.layout.setTabStripPlacement(legacyPlacement);
+        applyPlacement(legacyPlacement);
+        return;
       }
 
-      applyPlacement(nextPlacement);
-      if (isMainSurface && nextPlacement !== placement) {
-        await window.browserAPI.layout.setTabStripPlacement(nextPlacement);
-      }
+      applyPlacement(placement);
     });
 
     window.browserAPI.on("layout:tabStripPlacementChanged", applyPlacement);

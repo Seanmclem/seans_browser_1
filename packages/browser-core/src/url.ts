@@ -10,7 +10,8 @@ export function normalizeURL(input: string): string {
   if (
     trimmed.startsWith("http://") ||
     trimmed.startsWith("https://") ||
-    trimmed.startsWith("about:")
+    trimmed.startsWith("about:") ||
+    trimmed.startsWith("seans-browser://")
   ) {
     return trimmed;
   }
@@ -21,4 +22,3 @@ export function normalizeURL(input: string): string {
 
   return `${SEARCH_URL}${encodeURIComponent(trimmed)}`;
 }
-

@@ -1,6 +1,7 @@
 import Store from "electron-store";
 import { LocalBrowserDatabase } from "./data/LocalBrowserDatabase";
 import { SqliteHistoryRepository } from "./data/SqliteHistoryRepository";
+import { isInternalPageUrl } from "./InternalPages";
 
 const LEGACY_HISTORY_MIGRATED_META_KEY = "legacyElectronStoreHistoryMigratedAt";
 
@@ -33,6 +34,10 @@ export class HistoryManager {
   }
 
   async addEntry(url: string, title: string): Promise<void> {
+    if (!shouldRecordHistoryUrl(url)) {
+      return;
+    }
+
     await this.repository.addVisit(
       this.repository.createVisit({
         title,
@@ -42,8 +47,8 @@ export class HistoryManager {
     );
   }
 
-  async search(query: string): Promise<HistoryEntry[]> {
-    const visits = await this.repository.searchVisits({ limit: 50, query });
+  async search(query: string, limit = 50): Promise<HistoryEntry[]> {
+    const visits = await this.repository.searchVisits({ limit, query });
     return visits.map((visit) => ({
       url: visit.url,
       title: visit.title,
@@ -85,4 +90,8 @@ export class HistoryManager {
 
     this.database.setMeta(LEGACY_HISTORY_MIGRATED_META_KEY, new Date().toISOString());
   }
+}
+
+function shouldRecordHistoryUrl(url: string): boolean {
+  return Boolean(url) && !url.startsWith("about:") && !isInternalPageUrl(url);
 }

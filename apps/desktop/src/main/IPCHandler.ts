@@ -1,5 +1,6 @@
 import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
 import { BrowserWindowController } from "./BrowserWindowController";
+import { FAVORITES_PAGE_URL, HISTORY_PAGE_URL, isInternalPageUrl } from "./InternalPages";
 import type { TabDropPlacement, TabStripPlacement } from "./types";
 
 type ControllerResolver = (sender: WebContents) => BrowserWindowController | undefined;
@@ -42,6 +43,28 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
   });
   ipcMain.handle("browser:closeActiveTab", async (event) => {
     await getController(event).tabManager.closeActiveTab();
+  });
+  ipcMain.handle("browser:addActiveTabToFavorites", async (event) => {
+    const controller = getController(event);
+    const activeTab = controller.tabManager.getActiveTab();
+    if (!activeTab || activeTab.url.startsWith("about:") || isInternalPageUrl(activeTab.url)) {
+      return null;
+    }
+
+    const favorite = controller.dataManager.favorites.createFavorite({
+      favicon: activeTab.favicon,
+      sortOrder: Date.now(),
+      title: activeTab.title,
+      url: activeTab.url
+    });
+    await controller.dataManager.favorites.upsertFavorite(favorite);
+    return favorite.sync.id;
+  });
+  ipcMain.handle("browser:openFavorites", (event) => {
+    getController(event).tabManager.createTab(FAVORITES_PAGE_URL);
+  });
+  ipcMain.handle("browser:openHistory", (event) => {
+    getController(event).tabManager.createTab(HISTORY_PAGE_URL);
   });
 
   ipcMain.handle("tab:create", async (event, url?: string) => {

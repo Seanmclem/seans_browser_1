@@ -58,7 +58,7 @@ The tab right-click menu is still native Electron UI through `tab.showContextMen
 
 Tab placement is controlled by `store/uiStore.ts` as `tabStripPlacement: "top" | "left" | "right"`. The hamburger menu exposes `Tabs on Top`, `Tabs on Left`, and `Tabs on Right`.
 
-Placement changes flow through `window.browserAPI.layout.setTabStripPlacement(...)`. Main updates `WindowManager`, reflows page insets, and broadcasts `layout:tabStripPlacementChanged` to both chrome surfaces. The main surface persists the placement in `localStorage` so new windows restore the last selected layout.
+Placement changes flow through `window.browserAPI.layout.setTabStripPlacement(...)`. Main updates `WindowManager`, writes the placement through the SQLite-backed settings repository, reflows page insets, and broadcasts `layout:tabStripPlacementChanged` to both chrome surfaces. The renderer still migrates the old `localStorage` placement key once, then removes it.
 
 `TabBar` accepts `orientation="horizontal" | "vertical"`. The same tab activation, close, context-menu, and drag/drop paths work in both orientations. Dropping onto empty tab-strip space appends the dragged tab, which keeps cross-window tab dragging useful for vertical rails.
 
@@ -78,6 +78,7 @@ The renderer does not own canonical tab state. Main owns the real tab records an
 - `tab.create`, `tab.close`, `tab.activate`, `tab.list`, `tab.sleep`
 - `nav.back`, `nav.forward`, `nav.reload`, `nav.loadURL`
 - `history.search`
+- `browser.addActiveTabToFavorites`, `browser.openFavorites`, `browser.openHistory`
 - `layout.setChromeHeight`, `layout.setChromeOverlayHeight`
 - `layout.getTabStripPlacement`, `layout.setTabStripPlacement`
 - event subscription helpers: `on` and `off`

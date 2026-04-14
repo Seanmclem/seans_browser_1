@@ -72,7 +72,33 @@ OpenTabs should be scoped by `deviceId` so one device can show "tabs from anothe
 2. Add SQLite-backed desktop repositories under `apps/desktop/src/main/data`.
 3. Add Expo SQLite-backed mobile repositories under `apps/mobile/src/data`.
 4. Migrate desktop history from `electron-store` to `HistoryRepository`.
-5. Persist mobile tab state with `OpenTabsRepository`.
-6. Add favorites/bookmark UI on top of `FavoritesRepository`.
-7. Move tab placement and media/autoplay preferences into `SettingsRepository`.
-8. Add remote sync workers after local repositories are stable.
+5. Persist desktop tab placement through `SettingsRepository`.
+6. Persist desktop open-tabs snapshots through `OpenTabsRepository`.
+7. Persist mobile tab state with `OpenTabsRepository`.
+8. Add favorites/bookmark UI on top of `FavoritesRepository`.
+9. Move media/autoplay preferences into `SettingsRepository`.
+10. Add remote sync workers after local repositories are stable.
+
+## Current Desktop Implementation
+
+Desktop now uses `LocalBrowserDatabase` as a shared SQLite connection for browser data.
+`BrowserDataManager` owns the desktop repositories and exposes higher-level helpers for app code.
+
+Implemented repositories:
+
+- `SqliteHistoryRepository`
+- `SqliteFavoritesRepository`
+- `SqliteOpenTabsRepository`
+- `SqliteSettingsRepository`
+- `SqliteLocalChangeRepository`
+
+Live desktop integrations:
+
+- Page visits are written to SQLite history from `TabManager` after normal page loads.
+- The hamburger menu can open a local `seans-browser://history/` tab backed by SQLite history search.
+- The hamburger menu can save the active page to favorites and open a local `seans-browser://favorites/` page.
+- Tab-strip placement is stored in SQLite settings under `desktop.tabStripPlacement`.
+- Legacy renderer `localStorage` tab placement is migrated into SQLite once and then removed.
+- Open tab/window snapshots are written to SQLite when tabs are added, updated, removed, activated, reordered, or when tab placement changes.
+
+Open-tabs restore is intentionally not automatic yet. Restoring after app quit and not restoring after a user intentionally closes a window need a deliberate product rule before we turn the snapshots back into windows.

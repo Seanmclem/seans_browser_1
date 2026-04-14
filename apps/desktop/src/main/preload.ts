@@ -40,9 +40,13 @@ contextBridge.exposeInMainWorld("browserAPI", {
     search: (query: string) => ipcRenderer.invoke("history:search", query)
   },
   browser: {
+    addActiveTabToFavorites: (): Promise<string | null> =>
+      ipcRenderer.invoke("browser:addActiveTabToFavorites"),
     closeActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:closeActiveTab"),
     moveActiveTabToNewWindow: (): Promise<void> =>
       ipcRenderer.invoke("browser:moveActiveTabToNewWindow"),
+    openFavorites: (): Promise<void> => ipcRenderer.invoke("browser:openFavorites"),
+    openHistory: (): Promise<void> => ipcRenderer.invoke("browser:openHistory"),
     sleepActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:sleepActiveTab")
   },
   layout: {

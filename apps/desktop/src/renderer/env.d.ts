@@ -37,8 +37,11 @@ interface BrowserAPI {
     search: (query: string) => Promise<HistoryEntry[]>;
   };
   browser: {
+    addActiveTabToFavorites: () => Promise<string | null>;
     closeActiveTab: () => Promise<void>;
     moveActiveTabToNewWindow: () => Promise<void>;
+    openFavorites: () => Promise<void>;
+    openHistory: () => Promise<void>;
     sleepActiveTab: () => Promise<void>;
   };
   layout: {

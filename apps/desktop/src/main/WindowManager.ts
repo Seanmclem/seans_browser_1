@@ -13,7 +13,11 @@ export class WindowManager {
   private chromeHeight = 96;
   private chromeOverlayHeight = 0;
   private sideTabRailWidth = SIDE_TAB_RAIL_WIDTH;
-  private tabStripPlacement: TabStripPlacement = "top";
+  private tabStripPlacement: TabStripPlacement;
+
+  constructor(initialTabStripPlacement: TabStripPlacement = "top") {
+    this.tabStripPlacement = initialTabStripPlacement;
+  }
 
   createMainWindow(): BrowserWindow {
     this.win = new BrowserWindow({
