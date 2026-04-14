@@ -4,7 +4,7 @@ Monorepo scaffold for a custom browser with:
 
 - `apps/desktop`: Electron + TypeScript + React + Vite browser shell using `WebContentsView`
 - `apps/mobile`: Expo + React Native + `react-native-webview`
-- `packages/browser-core`: shared tab types, sleep policy logic, and URL normalization
+- `packages/browser-core`: shared tab types, sleep policy logic, URL normalization, and local-first data contracts
 
 ## What Is Already Implemented
 
@@ -12,7 +12,7 @@ Monorepo scaffold for a custom browser with:
 - Desktop sleep manager with soft/hard sleep thresholds shared from `browser-core`
 - Desktop React chrome with tab strip, toolbar, address bar, IPC store sync, and keyboard shortcuts
 - Mobile Expo browser shell with tab strip, address bar, toolbar, shared sleep policy watcher, and `WebView` stack
-- Shared `normalizeURL()` utility plus browser tab/sleep types
+- Shared `normalizeURL()` utility plus browser tab/sleep types and sync-ready browser data contracts
 
 ## Workspace Layout
 
@@ -25,7 +25,7 @@ Monorepo scaffold for a custom browser with:
     └── browser-core
 ```
 
-See [`docs/desktop-architecture.md`](docs/desktop-architecture.md) for the current desktop view architecture and [`docs/desktop-browser-ui.md`](docs/desktop-browser-ui.md) for the React browser chrome.
+See [`docs/desktop-architecture.md`](docs/desktop-architecture.md) for the current desktop view architecture, [`docs/desktop-browser-ui.md`](docs/desktop-browser-ui.md) for the React browser chrome, and [`docs/local-first-data.md`](docs/local-first-data.md) for the shared local-first data plan.
 
 ## Getting Started
 
