@@ -490,7 +490,7 @@ export class TabManager extends EventEmitter {
       }
       const url = contents.getURL() || tab.url;
       const title = contents.getTitle() || tab.title;
-      this.historyManager.addEntry(url, title);
+      void this.historyManager.addEntry(url, title);
       this.patchTab(id, {
         url,
         title,

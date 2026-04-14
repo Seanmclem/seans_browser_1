@@ -47,6 +47,12 @@ Run the desktop app:
 npm run desktop:dev
 ```
 
+If Electron reports a native module ABI mismatch after installing dependencies, rebuild desktop native modules:
+
+```bash
+npm run desktop:rebuild-native
+```
+
 Run the Expo app:
 
 ```bash
