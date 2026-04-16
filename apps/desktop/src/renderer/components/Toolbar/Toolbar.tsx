@@ -1,7 +1,8 @@
+import { ArrowLeft, ArrowRight, RotateCw, X } from "lucide-react";
 import { useTabStore } from "../../store/tabStore";
 
 const TOOL_CLASS =
-  "inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-[14px] border-0 bg-bg-surface px-[14px] py-[10px] text-[18px] leading-none text-text-primary transition-[background,opacity] duration-150 hover:bg-accent-subtle disabled:cursor-default disabled:opacity-45 disabled:hover:bg-bg-surface";
+  "inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-[14px] border-0 bg-bg-surface px-[14px] py-[10px] text-text-primary transition-[background,opacity] duration-150 hover:bg-accent-subtle disabled:cursor-default disabled:opacity-45 disabled:hover:bg-bg-surface";
 
 export function Toolbar() {
   const { activeTabId, tabs } = useTabStore();
@@ -42,7 +43,7 @@ export function Toolbar() {
         onClick={() => run("back")}
         type="button"
       >
-        ←
+        <ArrowLeft aria-hidden size={19} strokeWidth={2.25} />
       </button>
       {activeTab?.canGoForward ? (
         <button
@@ -52,7 +53,7 @@ export function Toolbar() {
           title="Forward"
           type="button"
         >
-          →
+          <ArrowRight aria-hidden size={19} strokeWidth={2.25} />
         </button>
       ) : null}
       <button
@@ -62,7 +63,11 @@ export function Toolbar() {
         title={activeTab?.isLoading ? "Stop" : "Reload"}
         type="button"
       >
-        {activeTab?.isLoading ? "×" : "↻"}
+        {activeTab?.isLoading ? (
+          <X aria-hidden size={19} strokeWidth={2.4} />
+        ) : (
+          <RotateCw aria-hidden size={18} strokeWidth={2.3} />
+        )}
       </button>
     </div>
   );

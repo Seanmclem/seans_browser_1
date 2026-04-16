@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type MouseEvent
 } from "react";
+import { Menu } from "lucide-react";
 import { useTabStore } from "../../store/tabStore";
 import { useUIStore, type TabStripPlacement } from "../../store/uiStore";
 
@@ -102,6 +103,13 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
 
   const handleOpenMenu = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
+    if (browserMenu) {
+      setBrowserMenu(null);
+      void window.browserAPI.layout.setChromeOverlayHeight(0);
+      event.currentTarget.blur();
+      return;
+    }
+
     const bounds = event.currentTarget.getBoundingClientRect();
     event.currentTarget.blur();
     const menuX = bounds.right - BROWSER_MENU_WIDTH;
@@ -206,9 +214,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
         onMouseLeave={(event) => event.currentTarget.blur()}
         type="button"
       >
-        <span className="block h-[2px] w-4 rounded-full bg-current" />
-        <span className="block h-[2px] w-4 rounded-full bg-current" />
-        <span className="block h-[2px] w-4 rounded-full bg-current" />
+        <Menu aria-hidden size={20} strokeWidth={2.35} />
       </button>
 
       {browserMenu ? (

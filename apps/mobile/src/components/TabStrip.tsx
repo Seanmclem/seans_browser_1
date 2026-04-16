@@ -1,4 +1,6 @@
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, useColorScheme, View } from "react-native";
+import { Bed, Moon, OctagonAlert, Plus, X } from "lucide-react-native";
+import { browserTheme } from "@seans-browser/browser-theme";
 import type { MobileTab } from "../store/browserStore";
 
 interface TabStripProps {
@@ -10,6 +12,9 @@ interface TabStripProps {
 }
 
 export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: TabStripProps) {
+  const colorScheme = useColorScheme();
+  const theme = browserTheme[colorScheme === "light" ? "light" : "dark"];
+
   return (
     <View className="flex-row items-center gap-[10px]">
       <ScrollView
@@ -38,18 +43,19 @@ export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: T
               >
                 {tab.title || tab.url}
               </Text>
-              <Text className="text-[10px] uppercase text-accent">
-                {tab.state === "soft-sleeping"
-                  ? "soft"
-                  : tab.state === "hard-sleeping"
-                    ? "hard"
-                    : ""}
-              </Text>
+              {tab.state === "soft-sleeping" ? (
+                <Bed color={theme.accent} size={14} strokeWidth={2.4} />
+              ) : tab.state === "hard-sleeping" ? (
+                <Moon color={theme.accent} size={14} strokeWidth={2.4} />
+              ) : tab.state === "crashed" ? (
+                <OctagonAlert color={theme.accent} size={14} strokeWidth={2.4} />
+              ) : null}
               <TouchableOpacity
+                accessibilityLabel="Close tab"
                 onPress={() => onClose(tab.id)}
                 className="h-[22px] w-[22px] items-center justify-center rounded-full bg-bg-base/30"
               >
-                <Text className="text-text-primary">x</Text>
+                <X color={theme["text-primary"]} size={13} strokeWidth={2.4} />
               </TouchableOpacity>
             </TouchableOpacity>
           );
@@ -57,10 +63,11 @@ export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: T
       </ScrollView>
       <TouchableOpacity
         activeOpacity={0.88}
+        accessibilityLabel="Open a new tab"
         onPress={onCreate}
         className="h-[42px] w-[42px] items-center justify-center rounded-2xl bg-accent"
       >
-        <Text className="text-[26px] text-bg-base">+</Text>
+        <Plus color={theme["bg-base"]} size={24} strokeWidth={2.5} />
       </TouchableOpacity>
     </View>
   );

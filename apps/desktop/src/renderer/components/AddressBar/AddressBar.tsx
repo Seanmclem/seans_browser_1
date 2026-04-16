@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { Lock, LockOpen } from "lucide-react";
 import { useTabStore } from "../../store/tabStore";
 import { useUIStore } from "../../store/uiStore";
 
@@ -9,6 +10,7 @@ export function AddressBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const isSecure = activeTab?.url.startsWith("https://") ?? false;
 
   useEffect(() => {
     if (!isFocused) {
@@ -34,8 +36,18 @@ export function AddressBar() {
       className="app-region-no-drag grid w-full grid-cols-[auto_1fr] items-center gap-[10px] rounded-[18px] border border-border bg-bg-base px-[14px] py-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
       onSubmit={handleSubmit}
     >
-      <span className="rounded-full bg-accent-subtle px-[10px] py-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-accent">
-        {activeTab?.url.startsWith("https://") ? "Secure" : "Web"}
+      <span
+        aria-label={isSecure ? "Secure connection" : "Not secure"}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
+          isSecure ? "bg-emerald-500 text-white" : "bg-red-200 text-red-800"
+        }`}
+        title={isSecure ? "Secure connection" : "Not secure"}
+      >
+        {isSecure ? (
+          <Lock aria-hidden size={15} strokeWidth={2.6} />
+        ) : (
+          <LockOpen aria-hidden size={15} strokeWidth={2.6} />
+        )}
       </span>
       <input
         ref={inputRef}

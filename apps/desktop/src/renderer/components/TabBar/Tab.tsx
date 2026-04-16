@@ -1,5 +1,6 @@
 import type { DragEvent, MouseEvent } from "react";
 import type { SerializedTab } from "@seans-browser/browser-core";
+import { Bed, Moon, OctagonAlert, X } from "lucide-react";
 import { SleepOverlay } from "../SleepOverlay/SleepOverlay";
 
 interface TabProps {
@@ -15,10 +16,10 @@ interface TabProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const sleepIcons: Record<string, string> = {
-  "soft-sleeping": "ZZ",
-  "hard-sleeping": "HZ",
-  crashed: "!"
+const sleepIconLabels: Record<string, string> = {
+  "soft-sleeping": "Soft sleeping",
+  "hard-sleeping": "Hard sleeping",
+  crashed: "Crashed"
 };
 
 export function Tab({
@@ -33,14 +34,14 @@ export function Tab({
   onDrop,
   orientation = "horizontal"
 }: TabProps) {
-  const sleepIcon = sleepIcons[tab.state];
+  const sleepIconLabel = sleepIconLabels[tab.state];
   const tabClassName = [
     "app-region-no-drag group relative grid cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-[10px] rounded-2xl border px-3 py-[10px] transition-colors duration-150",
     orientation === "vertical" ? "w-full min-w-0" : "min-w-[220px] max-w-[280px]",
     isActive
       ? "border-tab-border-active bg-accent text-bg-base hover:border-tab-border-active hover:bg-accent"
       : "border-border bg-bg-surface text-text-muted hover:border-tab-border-active/60 hover:bg-accent-subtle",
-    sleepIcon ? "opacity-95" : ""
+    sleepIconLabel ? "opacity-95" : ""
   ].join(" ");
 
   return (
@@ -62,9 +63,19 @@ export function Tab({
         ) : (
           <div className="h-4 w-4 rounded-[5px] bg-accent" />
         )}
-        {sleepIcon ? (
-          <span className="absolute -bottom-2 -right-2 h-4 min-w-4 rounded-full bg-accent-subtle px-1 text-center text-[8px] font-bold leading-4 text-accent">
-            {sleepIcon}
+        {sleepIconLabel ? (
+          <span
+            aria-label={sleepIconLabel}
+            className="absolute -bottom-2 -right-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-subtle px-1 text-accent"
+            title={sleepIconLabel}
+          >
+            {tab.state === "soft-sleeping" ? (
+              <Bed aria-hidden size={10} strokeWidth={2.6} />
+            ) : tab.state === "hard-sleeping" ? (
+              <Moon aria-hidden size={10} strokeWidth={2.6} />
+            ) : (
+              <OctagonAlert aria-hidden size={10} strokeWidth={2.6} />
+            )}
           </span>
         ) : null}
       </div>
@@ -80,7 +91,7 @@ export function Tab({
           onClose();
         }}
       >
-        x
+        <X aria-hidden size={13} strokeWidth={2.4} />
       </span>
 
       {tab.snapshot && !isActive ? (

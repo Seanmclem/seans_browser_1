@@ -1,4 +1,5 @@
 import { useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
+import { Plus } from "lucide-react";
 import { useTabStore } from "../../store/tabStore";
 import { useUIStore, type TabStripPlacement } from "../../store/uiStore";
 import { BrowserMenuButton } from "../BrowserMenu/BrowserMenuButton";
@@ -145,7 +146,7 @@ export function TabBar({ orientation, showBrowserMenu }: TabBarProps = {}) {
         style={NO_DRAG_REGION_STYLE}
         type="button"
       >
-        +
+        <Plus aria-hidden size={22} strokeWidth={2.5} />
       </button>
       {tabStripDirection === "horizontal" ? <div className="min-w-4 flex-1 self-stretch" /> : null}
       {shouldShowBrowserMenu ? <BrowserMenuButton /> : null}

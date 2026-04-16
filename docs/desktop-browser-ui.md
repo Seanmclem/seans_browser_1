@@ -36,13 +36,19 @@ It also measures the `<header>` height with `ResizeObserver` and sends that valu
 ## Components
 
 - `components/TabBar/TabBar.tsx`: renders the horizontal or vertical tab strip, new-tab button, tab drag/drop, and tab create/activate/close IPC calls.
-- `components/TabBar/Tab.tsx`: renders one horizontal or vertical tab with favicon/title, close control, sleep/crash badges, and sleeping-tab preview.
+- `components/TabBar/Tab.tsx`: renders one horizontal or vertical tab with favicon/title, close control, Lucide sleep/crash badges, and sleeping-tab preview.
 - `components/BrowserMenu/BrowserMenuButton.tsx`: renders the custom hamburger menu, navigation actions, favorites/history/settings entries, close actions, and tab-placement controls.
 - `components/Toolbar/Toolbar.tsx`: renders Back, Forward, and Reload/Stop controls for the active tab.
-- `components/AddressBar/AddressBar.tsx`: renders URL/search input, security label, focus behavior, and navigation submit.
+- `components/AddressBar/AddressBar.tsx`: renders URL/search input, lock/unlock connection indicator, focus behavior, and navigation submit.
 - `components/SleepOverlay/SleepOverlay.tsx`: renders a snapshot overlay for sleeping tabs.
 
 Most component styling uses Tailwind utility classes in the TSX files. `styles.css` keeps global renderer rules such as transparency, base font setup, and Electron drag/no-drag regions.
+
+## Icons
+
+Desktop chrome uses `lucide-react` for toolbar, tab, hamburger, status, and address-bar icons. The Expo app uses `lucide-react-native` with `react-native-svg`, keeping the icon family consistent while still using each platform's native rendering path.
+
+The address bar shows connection state as an icon chip rather than a text badge: HTTPS pages use a locked icon on a green background, and non-HTTPS/internal/unrecognized pages use an unlocked icon on a light-red background.
 
 ## Browser Menu
 
