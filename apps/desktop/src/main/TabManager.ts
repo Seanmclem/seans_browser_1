@@ -8,6 +8,7 @@ import {
 import { EventEmitter } from "node:events";
 import { evaluateSleepState, normalizeURL, TabId } from "@seans-browser/browser-core";
 import { HistoryManager } from "./HistoryManager";
+import { FAVORITES_PAGE_URL } from "./InternalPages";
 import { SessionManager } from "./SessionManager";
 import {
   DetachedTab,
@@ -124,6 +125,7 @@ export class TabManager extends EventEmitter {
     nextTab.view.setVisible(true);
     nextTab.view.webContents.setBackgroundThrottling(false);
     this.positionView(nextTab.view);
+    this.reloadFavoritesPageIfNeeded(nextTab);
 
     this.activeTabId = id;
     this.emit("tab:activated", id);
@@ -302,6 +304,23 @@ export class TabManager extends EventEmitter {
     this.tabs.get(id)?.view?.webContents.reload();
   }
 
+  async stopLoading(id: TabId): Promise<void> {
+    const tab = this.tabs.get(id);
+    if (!tab?.view) {
+      return;
+    }
+
+    tab.view.webContents.stop();
+    tab.isLoading = false;
+    this.emit("tab:updated", this.serializeTab(tab));
+  }
+
+  reloadFavoritesPages(): void {
+    for (const tab of this.tabs.values()) {
+      this.reloadFavoritesPageIfNeeded(tab);
+    }
+  }
+
   async navigateTo(id: TabId, input: string): Promise<void> {
     const tab = this.tabs.get(id);
     if (!tab?.view) {
@@ -434,6 +453,14 @@ export class TabManager extends EventEmitter {
         sandbox: false
       }
     });
+  }
+
+  private reloadFavoritesPageIfNeeded(tab: TabRecord): void {
+    if (!tab.view || !tab.url.startsWith(FAVORITES_PAGE_URL)) {
+      return;
+    }
+
+    tab.view.webContents.reloadIgnoringCache();
   }
 
   private attachWebContentsListeners(id: TabId, view: WebContentsView): void {

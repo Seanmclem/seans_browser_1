@@ -34,15 +34,28 @@ contextBridge.exposeInMainWorld("browserAPI", {
     back: (id: TabId): Promise<void> => ipcRenderer.invoke("nav:back", id),
     forward: (id: TabId): Promise<void> => ipcRenderer.invoke("nav:forward", id),
     reload: (id: TabId): Promise<void> => ipcRenderer.invoke("nav:reload", id),
+    stop: (id: TabId): Promise<void> => ipcRenderer.invoke("nav:stop", id),
     loadURL: (id: TabId, url: string): Promise<void> => ipcRenderer.invoke("nav:loadURL", id, url)
   },
   history: {
     search: (query: string) => ipcRenderer.invoke("history:search", query)
   },
   browser: {
-    addActiveTabToFavorites: (): Promise<string | null> =>
-      ipcRenderer.invoke("browser:addActiveTabToFavorites"),
+    addFavorite: (input: {
+      favicon?: string | null;
+      parentFolderId?: string | null;
+      title: string;
+      url: string;
+    }): Promise<string | null> => ipcRenderer.invoke("browser:addFavorite", input),
     closeActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:closeActiveTab"),
+    createFavoriteFolder: (input: {
+      parentFolderId?: string | null;
+      title: string;
+    }): Promise<{ id: string; label: string; parentFolderId: string | null; title: string } | null> =>
+      ipcRenderer.invoke("browser:createFavoriteFolder", input),
+    listFavoriteFolders: (): Promise<
+      Array<{ id: string; label: string; parentFolderId: string | null; title: string }>
+    > => ipcRenderer.invoke("browser:listFavoriteFolders"),
     moveActiveTabToNewWindow: (): Promise<void> =>
       ipcRenderer.invoke("browser:moveActiveTabToNewWindow"),
     openFavorites: (): Promise<void> => ipcRenderer.invoke("browser:openFavorites"),

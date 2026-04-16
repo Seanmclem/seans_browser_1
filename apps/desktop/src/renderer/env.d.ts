@@ -9,6 +9,13 @@ interface HistoryEntry {
   visitedAt: number;
 }
 
+interface FavoriteFolderOption {
+  id: string;
+  label: string;
+  parentFolderId: string | null;
+  title: string;
+}
+
 interface BrowserAPI {
   tab: {
     create: (url?: string) => Promise<TabId>;
@@ -31,14 +38,25 @@ interface BrowserAPI {
     back: (id: TabId) => Promise<void>;
     forward: (id: TabId) => Promise<void>;
     reload: (id: TabId) => Promise<void>;
+    stop: (id: TabId) => Promise<void>;
     loadURL: (id: TabId, url: string) => Promise<void>;
   };
   history: {
     search: (query: string) => Promise<HistoryEntry[]>;
   };
   browser: {
-    addActiveTabToFavorites: () => Promise<string | null>;
+    addFavorite: (input: {
+      favicon?: string | null;
+      parentFolderId?: string | null;
+      title: string;
+      url: string;
+    }) => Promise<string | null>;
     closeActiveTab: () => Promise<void>;
+    createFavoriteFolder: (input: {
+      parentFolderId?: string | null;
+      title: string;
+    }) => Promise<FavoriteFolderOption | null>;
+    listFavoriteFolders: () => Promise<FavoriteFolderOption[]>;
     moveActiveTabToNewWindow: () => Promise<void>;
     openFavorites: () => Promise<void>;
     openHistory: () => Promise<void>;

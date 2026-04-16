@@ -1,5 +1,5 @@
 import type { Session } from "electron";
-import type { FavoriteRecord } from "@seans-browser/browser-core";
+import type { FavoriteFolderRecord, FavoriteRecord } from "@seans-browser/browser-core";
 import type { BrowserDataManager } from "./BrowserDataManager";
 import type { HistoryEntry } from "./HistoryManager";
 
@@ -24,8 +24,16 @@ export function registerInternalPages(session: Session, dataManager: BrowserData
     }
 
     if (url.hostname === "favorites") {
-      const favorites = await dataManager.favorites.listFavorites(null);
-      return htmlResponse(renderFavoritesPage(favorites));
+      const folderId = url.searchParams.get("folder");
+      const currentFolder = folderId
+        ? await dataManager.favorites.getFavoriteFolder(folderId)
+        : null;
+      const breadcrumbs = currentFolder
+        ? await getFavoriteFolderBreadcrumbs(dataManager, currentFolder)
+        : [];
+      const folders = await dataManager.favorites.listFavoriteFolders(folderId);
+      const favorites = await dataManager.favorites.listFavorites(folderId);
+      return htmlResponse(renderFavoritesPage(folders, favorites, currentFolder, breadcrumbs));
     }
 
     return htmlResponse(renderNotFoundPage(url), 404);
@@ -90,29 +98,84 @@ function renderHistoryEntry(entry: HistoryEntry): string {
   </a>`;
 }
 
-function renderFavoritesPage(favorites: FavoriteRecord[]): string {
+function renderFavoritesPage(
+  folders: FavoriteFolderRecord[],
+  favorites: FavoriteRecord[],
+  currentFolder: FavoriteFolderRecord | null,
+  breadcrumbs: FavoriteFolderRecord[]
+): string {
+  const pageTitle = currentFolder?.title ?? "Favorites";
+  const parentUrl = currentFolder?.parentFolderId
+    ? `${FAVORITES_PAGE_URL}?folder=${escapeAttribute(currentFolder.parentFolderId)}`
+    : FAVORITES_PAGE_URL;
+
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Favorites</title>
+    <title>${escapeHtml(pageTitle)}</title>
     ${sharedPageStyles()}
   </head>
   <body>
     <main>
-      <h1>Favorites</h1>
+      <h1>${escapeHtml(pageTitle)}</h1>
       <p class="subtitle">Saved pages stored locally in SQLite through the shared favorites repository.</p>
+      ${renderFavoritesBreadcrumbs(breadcrumbs)}
+      ${currentFolder ? `<p><a class="back-link" href="${parentUrl}">Back</a></p>` : ""}
       <section class="history-list" aria-label="Favorite pages">
         ${
-          favorites.length > 0
-            ? favorites.map(renderFavorite).join("")
+          folders.length > 0 || favorites.length > 0
+            ? `${folders.map(renderFavoriteFolder).join("")}${favorites.map(renderFavorite).join("")}`
             : `<div class="empty">No favorites yet. Use the browser menu to bookmark the active page.</div>`
         }
       </section>
     </main>
   </body>
 </html>`;
+}
+
+async function getFavoriteFolderBreadcrumbs(
+  dataManager: BrowserDataManager,
+  currentFolder: FavoriteFolderRecord
+): Promise<FavoriteFolderRecord[]> {
+  const breadcrumbs: FavoriteFolderRecord[] = [currentFolder];
+  let parentFolderId = currentFolder.parentFolderId;
+
+  while (parentFolderId) {
+    const parent = await dataManager.favorites.getFavoriteFolder(parentFolderId);
+    if (!parent) {
+      break;
+    }
+
+    breadcrumbs.unshift(parent);
+    parentFolderId = parent.parentFolderId;
+  }
+
+  return breadcrumbs;
+}
+
+function renderFavoritesBreadcrumbs(breadcrumbs: FavoriteFolderRecord[]): string {
+  const links = [
+    `<a href="${FAVORITES_PAGE_URL}">Favorites</a>`,
+    ...breadcrumbs.map((folder, index) => {
+      const isCurrent = index === breadcrumbs.length - 1;
+      const label = escapeHtml(folder.title);
+      const href = `${FAVORITES_PAGE_URL}?folder=${escapeAttribute(folder.sync.id)}`;
+      return isCurrent ? `<span>${label}</span>` : `<a href="${href}">${label}</a>`;
+    })
+  ];
+
+  return `<nav class="breadcrumbs" aria-label="Favorite folder path">${links.join(
+    '<span class="breadcrumb-separator">/</span>'
+  )}</nav>`;
+}
+
+function renderFavoriteFolder(folder: FavoriteFolderRecord): string {
+  return `<a class="history-item" href="${FAVORITES_PAGE_URL}?folder=${escapeAttribute(folder.sync.id)}">
+    <span class="history-title">Folder: ${escapeHtml(folder.title)}</span>
+    <span class="history-url">Virtual browser folder</span>
+  </a>`;
 }
 
 function renderFavorite(favorite: FavoriteRecord): string {
@@ -163,9 +226,9 @@ function sharedPageStyles(): string {
 
     h1 {
       margin: 0 0 10px;
-      font-size: clamp(36px, 6vw, 68px);
-      letter-spacing: -0.06em;
-      line-height: 0.9;
+      font-size: clamp(42px, 6vw, 76px);
+      letter-spacing: normal;
+      line-height: 1;
     }
 
     .subtitle {
@@ -228,6 +291,44 @@ function sharedPageStyles(): string {
     .history-item:hover {
       background: #10233d;
       border-color: rgba(56, 189, 248, 0.42);
+    }
+
+    .back-link {
+      color: #7dd3fc;
+      display: inline-block;
+      margin-bottom: 18px;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      color: #bae6fd;
+    }
+
+    .breadcrumbs {
+      align-items: center;
+      color: #91a4bc;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: -10px 0 20px;
+    }
+
+    .breadcrumbs a {
+      color: #7dd3fc;
+      text-decoration: none;
+    }
+
+    .breadcrumbs a:hover {
+      color: #bae6fd;
+    }
+
+    .breadcrumbs span:last-child {
+      color: #e5eefc;
+      font-weight: 800;
+    }
+
+    .breadcrumb-separator {
+      color: #475569;
     }
 
     .history-title {

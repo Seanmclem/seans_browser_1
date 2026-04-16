@@ -43,7 +43,12 @@ export function AddressBar() {
         value={isFocused ? inputValue : activeTab?.url ?? ""}
         onBlur={() => setIsFocused(false)}
         onChange={(event) => setInputValue(event.target.value)}
-        onFocus={() => setIsFocused(true)}
+        onFocus={(event) => {
+          const input = event.currentTarget;
+          setIsFocused(true);
+          setInputValue(activeTab?.url ?? "");
+          requestAnimationFrame(() => input.select());
+        }}
         placeholder="Search or enter URL"
         spellCheck={false}
       />

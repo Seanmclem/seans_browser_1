@@ -63,6 +63,13 @@ export class SqliteFavoritesRepository implements FavoritesRepository {
     return rows.map(toFolderRecord);
   }
 
+  async getFavoriteFolder(id: string): Promise<FavoriteFolderRecord | null> {
+    const row = this.database.db
+      .prepare("select * from favorite_folders where id = ? and deleted_at is null")
+      .get(id) as FavoriteFolderRow | undefined;
+    return row ? toFolderRecord(row) : null;
+  }
+
   async listFavorites(parentFolderId: string | null = null): Promise<FavoriteRecord[]> {
     const rows = this.database.db
       .prepare(

@@ -1,5 +1,6 @@
 import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
 import { BrowserWindowController } from "./BrowserWindowController";
+import type { SqliteFavoritesRepository } from "./data/SqliteFavoritesRepository";
 import { FAVORITES_PAGE_URL, HISTORY_PAGE_URL, isInternalPageUrl } from "./InternalPages";
 import type { TabDropPlacement, TabStripPlacement } from "./types";
 
@@ -7,6 +8,18 @@ type ControllerResolver = (sender: WebContents) => BrowserWindowController | und
 interface ContextMenuPosition {
   x: number;
   y: number;
+}
+
+interface AddFavoriteInput {
+  favicon?: string | null;
+  parentFolderId?: string | null;
+  title: string;
+  url: string;
+}
+
+interface CreateFavoriteFolderInput {
+  parentFolderId?: string | null;
+  title: string;
 }
 
 export function registerIPCHandlers(resolveController: ControllerResolver): void {
@@ -44,21 +57,55 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
   ipcMain.handle("browser:closeActiveTab", async (event) => {
     await getController(event).tabManager.closeActiveTab();
   });
-  ipcMain.handle("browser:addActiveTabToFavorites", async (event) => {
+  ipcMain.handle("browser:addFavorite", async (event, input: AddFavoriteInput) => {
     const controller = getController(event);
-    const activeTab = controller.tabManager.getActiveTab();
-    if (!activeTab || activeTab.url.startsWith("about:") || isInternalPageUrl(activeTab.url)) {
+    const title = input.title.trim();
+    const url = input.url.trim();
+
+    if (!title || !url || url.startsWith("about:") || isInternalPageUrl(url)) {
       return null;
     }
 
     const favorite = controller.dataManager.favorites.createFavorite({
-      favicon: activeTab.favicon,
+      favicon: input.favicon ?? null,
+      parentFolderId: input.parentFolderId ?? null,
       sortOrder: Date.now(),
-      title: activeTab.title,
-      url: activeTab.url
+      title,
+      url
     });
     await controller.dataManager.favorites.upsertFavorite(favorite);
+    controller.tabManager.reloadFavoritesPages();
     return favorite.sync.id;
+  });
+  ipcMain.handle("browser:createFavoriteFolder", async (event, input: CreateFavoriteFolderInput) => {
+    const title = input.title.trim();
+    if (!title) {
+      return null;
+    }
+
+    const controller = getController(event);
+    const folder = controller.dataManager.favorites.createFavoriteFolder({
+      parentFolderId: input.parentFolderId ?? null,
+      sortOrder: Date.now(),
+      title
+    });
+    await controller.dataManager.favorites.upsertFavoriteFolder(folder);
+    controller.tabManager.reloadFavoritesPages();
+    return {
+      id: folder.sync.id,
+      label: folder.title,
+      parentFolderId: folder.parentFolderId,
+      title: folder.title
+    };
+  });
+  ipcMain.handle("browser:listFavoriteFolders", async (event) => {
+    const folders = await listFavoriteFolderOptions(getController(event).dataManager.favorites);
+    return folders.map((folder) => ({
+      id: folder.sync.id,
+      label: folder.label,
+      parentFolderId: folder.parentFolderId,
+      title: folder.title
+    }));
   });
   ipcMain.handle("browser:openFavorites", (event) => {
     getController(event).tabManager.createTab(FAVORITES_PAGE_URL);
@@ -195,6 +242,9 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
   ipcMain.handle("nav:reload", async (event, id: string) => {
     await getController(event).tabManager.reload(id);
   });
+  ipcMain.handle("nav:stop", async (event, id: string) => {
+    await getController(event).tabManager.stopLoading(id);
+  });
   ipcMain.handle("nav:loadURL", async (event, id: string, url: string) => {
     await getController(event).tabManager.navigateTo(id, url);
   });
@@ -217,4 +267,33 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
     }
     getController(event).setTabStripPlacement(placement);
   });
+}
+
+interface FavoriteFolderOption {
+  label: string;
+  parentFolderId: string | null;
+  sync: { id: string };
+  title: string;
+}
+
+async function listFavoriteFolderOptions(
+  repository: SqliteFavoritesRepository,
+  parentFolderId: string | null = null,
+  prefix = ""
+): Promise<FavoriteFolderOption[]> {
+  const folders = await repository.listFavoriteFolders(parentFolderId);
+  const options: FavoriteFolderOption[] = [];
+
+  for (const folder of folders) {
+    const label = `${prefix}${folder.title}`;
+    options.push({
+      label,
+      parentFolderId: folder.parentFolderId,
+      sync: folder.sync,
+      title: folder.title
+    });
+    options.push(...(await listFavoriteFolderOptions(repository, folder.sync.id, `${label} / `)));
+  }
+
+  return options;
 }
