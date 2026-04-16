@@ -358,6 +358,25 @@ export class TabManager extends EventEmitter {
     this.emit("tab:updated", this.serializeTab(tab));
   }
 
+  async userSleepTab(id: TabId): Promise<boolean> {
+    const tab = this.tabs.get(id);
+    if (!tab?.view || tab.state === "hard-sleeping" || tab.state === "crashed") {
+      return false;
+    }
+
+    if (id === this.activeTabId) {
+      const fallbackTab = this.getTabs().find((candidate) => candidate.id !== id);
+      if (!fallbackTab) {
+        return false;
+      }
+
+      await this.setActiveTab(fallbackTab.id);
+    }
+
+    await this.softSleepTab(id);
+    return true;
+  }
+
   async hardSleepTab(id: TabId): Promise<void> {
     const tab = this.tabs.get(id);
     if (!tab || tab.id === this.activeTabId) {

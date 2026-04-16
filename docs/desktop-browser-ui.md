@@ -37,8 +37,8 @@ It also measures the `<header>` height with `ResizeObserver` and sends that valu
 
 - `components/TabBar/TabBar.tsx`: renders the horizontal or vertical tab strip, new-tab button, tab drag/drop, and tab create/activate/close IPC calls.
 - `components/TabBar/Tab.tsx`: renders one horizontal or vertical tab with favicon/title, close control, sleep/crash badges, and sleeping-tab preview.
-- `components/BrowserMenu/BrowserMenuButton.tsx`: renders the custom hamburger menu, navigation actions, sleep/close actions, and tab-placement controls.
-- `components/Toolbar/Toolbar.tsx`: renders Back, Forward, Reload, and Sleep Tab controls for the active tab.
+- `components/BrowserMenu/BrowserMenuButton.tsx`: renders the custom hamburger menu, navigation actions, favorites/history/settings entries, close actions, and tab-placement controls.
+- `components/Toolbar/Toolbar.tsx`: renders Back, Forward, and Reload/Stop controls for the active tab.
 - `components/AddressBar/AddressBar.tsx`: renders URL/search input, security label, focus behavior, and navigation submit.
 - `components/SleepOverlay/SleepOverlay.tsx`: renders a snapshot overlay for sleeping tabs.
 
@@ -53,6 +53,16 @@ Because page contents are separate sibling `WebContentsView`s, a normal React po
 This overlay only exists while the menu is open. During normal browsing the chrome view returns to its measured header height, so the approach should not add ongoing layout or rendering work. While open, the transparent overlay intentionally captures outside clicks so the menu can dismiss cleanly.
 
 The tab right-click menu is still native Electron UI through `tab.showContextMenu(...)`. That menu behaves like an OS context menu and does not need the custom overlay treatment.
+
+Manual tab sleep now lives in the tab right-click menu instead of the toolbar. Right-clicking a tab shows `Sleep Tab`; inactive tabs sleep directly, while the active tab first switches to another tab before sleeping. The item is disabled when there is nowhere safe to switch, or when the tab is already sleeping/crashed.
+
+The hamburger menu also opens local browser pages for History, Favorites, and Settings. Settings is currently the home for appearance controls, including `System`, `Light`, and `Dark` theme preference.
+
+## Theme
+
+Chrome colors come from the shared `@seans-browser/browser-theme` package. The renderer applies either `theme-light` or `theme-dark` to the app root, which activates semantic Tailwind utilities such as `bg-bg-chrome`, `text-text-primary`, `border-border`, and `bg-accent`.
+
+Desktop stores the user's preference as `appearance.themePreference` with values `system`, `light`, or `dark`. `system` resolves through Electron `nativeTheme`, and main broadcasts `theme:changed` to all chrome surfaces when the OS theme or saved preference changes. Mobile currently follows React Native `useColorScheme()` so the Expo shell tracks system appearance by default.
 
 ## Toggleable Tabs
 
@@ -79,9 +89,10 @@ The renderer does not own canonical tab state. Main owns the real tab records an
 - `nav.back`, `nav.forward`, `nav.reload`, `nav.loadURL`
 - `history.search`
 - `browser.addFavorite`, `browser.createFavoriteFolder`, `browser.listFavoriteFolders`
-- `browser.openFavorites`, `browser.openHistory`
+- `browser.openFavorites`, `browser.openHistory`, `browser.openSettings`
 - `layout.setChromeHeight`, `layout.setChromeOverlayHeight`
 - `layout.getTabStripPlacement`, `layout.setTabStripPlacement`
+- `theme.getState`, `theme.setPreference`
 - event subscription helpers: `on` and `off`
 
 `hooks/useTabManager.ts` initializes the tab list on mount with `tab.list()` and subscribes to push events from main:
@@ -96,6 +107,8 @@ The renderer does not own canonical tab state. Main owns the real tab records an
 `hooks/useIPC.ts` wraps subscribe/unsubscribe so React effects can attach stable IPC listeners without leaking handlers.
 
 `App.tsx` separately subscribes to `layout:tabStripPlacementChanged` so both the main chrome surface and the side-tabs surface stay in sync.
+
+It also subscribes to `theme:changed` so theme changes from the Settings page or OS appearance updates apply without restarting the browser.
 
 ## Keyboard And Focus
 

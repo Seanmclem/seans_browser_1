@@ -18,11 +18,12 @@ This is the current high-level backlog after the desktop local-first persistence
 
 ## Settings
 
-- Add a settings page backed by `SettingsRepository`.
+- Expand the current `seans-browser://settings/` page beyond appearance settings.
 - Wire homepage/default search engine settings.
 - Wire tracker/ad-blocking toggles.
 - Wire media/autoplay/fullscreen-ad behavior settings.
 - Wire sleep threshold settings.
+- Add settings search/grouping once the page has more than a few controls.
 
 ## Mobile Persistence
 

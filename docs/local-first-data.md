@@ -97,7 +97,9 @@ Live desktop integrations:
 - Page visits are written to SQLite history from `TabManager` after normal page loads.
 - The hamburger menu can open a local `seans-browser://history/` tab backed by SQLite history search.
 - The hamburger menu can save the active page to favorites and open a local `seans-browser://favorites/` page.
+- The hamburger menu can open a local `seans-browser://settings/` page backed by SQLite settings.
 - Tab-strip placement is stored in SQLite settings under `desktop.tabStripPlacement`.
+- Appearance theme preference is stored in SQLite settings under `appearance.themePreference` as `system`, `light`, or `dark`.
 - Legacy renderer `localStorage` tab placement is migrated into SQLite once and then removed.
 - Open tab/window snapshots are written to SQLite when tabs are added, updated, removed, activated, reordered, or when tab placement changes.
 

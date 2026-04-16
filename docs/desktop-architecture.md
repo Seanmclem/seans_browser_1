@@ -8,7 +8,7 @@ The desktop app uses Electron as the native shell and keeps browser chrome separ
 - `TabManager` owns page views, tab metadata, active-tab switching, navigation, snapshots, and sleep/wake transitions.
 - `SleepManager` evaluates soft/hard sleep thresholds from `browser-core` and asks `TabManager` to sleep or wake tabs.
 - `SessionManager` provides the shared persistent Electron session for page views, including request filtering and permission policy.
-- `IPCHandler` exposes tab, navigation, history, and layout operations to the React chrome through the preload bridge.
+- `IPCHandler` exposes tab, navigation, history, local browser pages, theme, and layout operations to the React chrome through the preload bridge.
 
 ## View Layout
 
@@ -22,9 +22,13 @@ Custom chrome overlays, currently the top-right hamburger menu, use a separate o
 
 When creating a new active tab, `TabManager` activates and shows its page view before calling `loadURL()`. Loading while hidden can leave Chromium without an available display surface on macOS, which caused pages to load in the DOM but fail to paint visibly.
 
+The tab context menu is native Electron UI. It owns tab-local actions such as moving a tab to a new window, reloading, sleeping, and closing. Manual sleep is routed through `TabManager.userSleepTab(...)` so an active tab can switch away before sleeping instead of violating the automatic-sleep rule that the visible tab is exempt.
+
 ## Renderer
 
 The React renderer is browser chrome only. It does not render page contents and does not use DOM `<webview>`. It mirrors tab state from the main process through IPC, renders the tab bar, toolbar, and address bar, and sends navigation/tab commands back to main.
+
+Chrome theming is shared through `@seans-browser/browser-theme`. Desktop resolves `appearance.themePreference` from SQLite settings, Electron `nativeTheme`, or both when set to `system`, then broadcasts resolved light/dark state to all chrome surfaces.
 
 See [`desktop-browser-ui.md`](desktop-browser-ui.md) for the current React/TypeScript browser chrome structure.
 

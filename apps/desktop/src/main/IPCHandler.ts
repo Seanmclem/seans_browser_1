@@ -226,10 +226,15 @@ export function registerIPCHandlers(
           }
         },
         {
-          enabled: controller.tabManager.getActiveTabId() !== id,
+          enabled:
+            tab.state !== "soft-sleeping" &&
+            tab.state !== "hard-sleeping" &&
+            tab.state !== "crashed" &&
+            (controller.tabManager.getActiveTabId() !== id ||
+              controller.tabManager.getTabs().length > 1),
           label: "Sleep Tab",
           click: () => {
-            void controller.sleepManager.softSleep(id);
+            void controller.tabManager.userSleepTab(id);
           }
         },
         { type: "separator" },
