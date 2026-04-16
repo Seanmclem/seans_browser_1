@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AddressBar } from "./components/AddressBar/AddressBar";
 import { BrowserMenuButton } from "./components/BrowserMenu/BrowserMenuButton";
 import { TabBar } from "./components/TabBar/TabBar";
@@ -17,6 +17,8 @@ export default function App() {
   const tabStripPlacement = useUIStore((state) => state.tabStripPlacement);
   useTabStripPlacementSync(isMainSurface);
   const chromeRef = useRef<HTMLElement>(null);
+  const resolvedTheme = useResolvedTheme();
+  const themeClassName = resolvedTheme === "light" ? "theme-light" : "theme-dark";
 
   useLayoutEffect(() => {
     if (!isMainSurface) {
@@ -44,7 +46,7 @@ export default function App() {
   if (surface === "side-tabs") {
     return (
       <div
-        className={`theme-dark h-screen bg-bg-chrome text-text-primary ${
+        className={`${themeClassName} h-screen bg-bg-chrome text-text-primary ${
           tabStripPlacement === "right" ? "border-l" : "border-r"
         } border-border`}
       >
@@ -54,7 +56,7 @@ export default function App() {
   }
 
   return (
-    <div className="theme-dark min-h-screen bg-transparent text-text-primary">
+    <div className={`${themeClassName} min-h-screen bg-transparent text-text-primary`}>
       <header
         ref={chromeRef}
         className="app-region-drag fixed inset-x-0 top-0 z-[100] border-b border-border bg-bg-chrome"
@@ -71,6 +73,36 @@ export default function App() {
       </header>
     </div>
   );
+}
+
+function useResolvedTheme(): "light" | "dark" {
+  const getSystemTheme = () =>
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(getSystemTheme);
+
+  useEffect(() => {
+    void window.browserAPI.theme.getState().then((themeState) => {
+      setResolvedTheme(themeState.resolvedTheme);
+    });
+
+    const handleThemeChanged = (themeState: unknown) => {
+      if (
+        typeof themeState === "object" &&
+        themeState !== null &&
+        "resolvedTheme" in themeState &&
+        (themeState.resolvedTheme === "light" || themeState.resolvedTheme === "dark")
+      ) {
+        setResolvedTheme(themeState.resolvedTheme);
+      }
+    };
+
+    window.browserAPI.on("theme:changed", handleThemeChanged);
+    return () => {
+      window.browserAPI.off("theme:changed", handleThemeChanged);
+    };
+  }, []);
+
+  return resolvedTheme;
 }
 
 function SideTabTopBar({ placement }: { placement: Exclude<TabStripPlacement, "top"> }) {

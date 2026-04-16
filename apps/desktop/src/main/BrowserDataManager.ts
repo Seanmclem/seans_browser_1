@@ -1,4 +1,4 @@
-import type { BrowserSettingRecord, JsonValue } from "@seans-browser/browser-core";
+import type { BrowserSettingRecord, JsonValue, ThemePreference } from "@seans-browser/browser-core";
 import { HistoryManager } from "./HistoryManager";
 import { LocalBrowserDatabase } from "./data/LocalBrowserDatabase";
 import { SqliteFavoritesRepository } from "./data/SqliteFavoritesRepository";
@@ -8,6 +8,7 @@ import { SqliteSettingsRepository } from "./data/SqliteSettingsRepository";
 import type { TabStripPlacement } from "./types";
 
 const TAB_STRIP_PLACEMENT_SETTING_KEY = "desktop.tabStripPlacement";
+const THEME_PREFERENCE_SETTING_KEY = "appearance.themePreference";
 
 export class BrowserDataManager {
   readonly database = new LocalBrowserDatabase();
@@ -25,6 +26,17 @@ export class BrowserDataManager {
   async setTabStripPlacement(placement: TabStripPlacement): Promise<void> {
     await this.settings.upsertSetting(
       await this.settingRecord(TAB_STRIP_PLACEMENT_SETTING_KEY, placement, "device", "desktop")
+    );
+  }
+
+  async getThemePreference(): Promise<ThemePreference> {
+    const setting = await this.settings.getSetting(THEME_PREFERENCE_SETTING_KEY, "all");
+    return isThemePreference(setting?.value) ? setting.value : "system";
+  }
+
+  async setThemePreference(preference: ThemePreference): Promise<void> {
+    await this.settings.upsertSetting(
+      await this.settingRecord(THEME_PREFERENCE_SETTING_KEY, preference, "profile", "all")
     );
   }
 
@@ -54,4 +66,8 @@ export class BrowserDataManager {
 
 function isTabStripPlacement(value: unknown): value is TabStripPlacement {
   return value === "top" || value === "left" || value === "right";
+}
+
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
 }

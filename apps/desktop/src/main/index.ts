@@ -1,4 +1,5 @@
-import { app, BrowserWindow, protocol, WebContents } from "electron";
+import { app, BrowserWindow, nativeTheme, protocol, WebContents } from "electron";
+import type { ResolvedTheme, ThemePreference, ThemeState } from "@seans-browser/browser-core";
 import { BrowserDataManager } from "./BrowserDataManager";
 import { BrowserWindowController } from "./BrowserWindowController";
 import { DownloadManager } from "./DownloadManager";
@@ -53,6 +54,8 @@ async function createMainWindow(
     controller.createInitialTab();
   }
 
+  void getThemeState().then((themeState) => controller.sendThemeState(themeState));
+
   return controller;
 }
 
@@ -94,12 +97,48 @@ function getUniqueControllers(): BrowserWindowController[] {
   return Array.from(new Set(windowControllers.values()));
 }
 
+async function getThemeState(): Promise<ThemeState> {
+  const preference = await dataManager.getThemePreference();
+  return {
+    preference,
+    resolvedTheme: resolveTheme(preference)
+  };
+}
+
+async function setThemePreference(preference: ThemePreference): Promise<ThemeState> {
+  await dataManager.setThemePreference(preference);
+  const themeState = await getThemeState();
+  broadcastThemeState(themeState);
+  return themeState;
+}
+
+function resolveTheme(preference: ThemePreference): ResolvedTheme {
+  if (preference === "light" || preference === "dark") {
+    return preference;
+  }
+
+  return nativeTheme.shouldUseDarkColors ? "dark" : "light";
+}
+
+function broadcastThemeState(themeState: ThemeState): void {
+  for (const controller of getUniqueControllers()) {
+    controller.sendThemeState(themeState);
+  }
+}
+
 app.whenReady().then(() => {
   sessionManager = new SessionManager();
   dataManager = new BrowserDataManager();
-  registerInternalPages(sessionManager.getSession(), dataManager);
+  registerInternalPages(sessionManager.getSession(), dataManager, {
+    onThemePreferenceChanged: () => {
+      void getThemeState().then(broadcastThemeState);
+    }
+  });
   new DownloadManager(sessionManager.getSession());
-  registerIPCHandlers(getControllerForSender);
+  registerIPCHandlers(getControllerForSender, {
+    getThemeState,
+    setThemePreference
+  });
   void createMainWindow();
 
   app.on("activate", () => {
@@ -107,6 +146,14 @@ app.whenReady().then(() => {
       void createMainWindow();
     }
   });
+});
+
+nativeTheme.on("updated", () => {
+  if (!dataManager) {
+    return;
+  }
+
+  void getThemeState().then(broadcastThemeState);
 });
 
 app.on("render-process-gone", (_event, contents, details) => {

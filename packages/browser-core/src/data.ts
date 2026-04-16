@@ -93,7 +93,15 @@ export interface OpenTabRecord extends SyncableRecord {
 }
 
 export type BrowserSettingScope = "profile" | "device";
+export type ThemePreference = "system" | "light" | "dark";
+export type ResolvedTheme = "light" | "dark";
+export interface ThemeState {
+  preference: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+}
+
 export type BrowserSettingKey =
+  | "appearance.themePreference"
   | "browser.defaultSearchEngine"
   | "browser.homepageUrl"
   | "privacy.blockTrackers"

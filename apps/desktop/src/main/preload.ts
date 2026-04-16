@@ -3,6 +3,8 @@ import type { SerializedTab, TabId } from "@seans-browser/browser-core";
 
 type Listener = (...args: unknown[]) => void;
 type TabStripPlacement = "top" | "left" | "right";
+type ThemePreference = "system" | "light" | "dark";
+type ThemeState = { preference: ThemePreference; resolvedTheme: "light" | "dark" };
 
 const subscriptions = new Map<Listener, (event: IpcRendererEvent, ...args: unknown[]) => void>();
 
@@ -60,6 +62,7 @@ contextBridge.exposeInMainWorld("browserAPI", {
       ipcRenderer.invoke("browser:moveActiveTabToNewWindow"),
     openFavorites: (): Promise<void> => ipcRenderer.invoke("browser:openFavorites"),
     openHistory: (): Promise<void> => ipcRenderer.invoke("browser:openHistory"),
+    openSettings: (): Promise<void> => ipcRenderer.invoke("browser:openSettings"),
     sleepActiveTab: (): Promise<void> => ipcRenderer.invoke("browser:sleepActiveTab")
   },
   layout: {
@@ -71,6 +74,11 @@ contextBridge.exposeInMainWorld("browserAPI", {
       ipcRenderer.invoke("layout:setChromeOverlayHeight", height),
     setTabStripPlacement: (placement: TabStripPlacement): Promise<void> =>
       ipcRenderer.invoke("layout:setTabStripPlacement", placement)
+  },
+  theme: {
+    getState: (): Promise<ThemeState> => ipcRenderer.invoke("theme:getState"),
+    setPreference: (preference: ThemePreference): Promise<ThemeState> =>
+      ipcRenderer.invoke("theme:setPreference", preference)
   },
   on: (channel: string, callback: Listener): void => {
     const wrapped = (_event: IpcRendererEvent, ...args: unknown[]) => callback(...args);

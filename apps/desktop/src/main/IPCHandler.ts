@@ -1,10 +1,20 @@
 import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
+import type { ThemePreference, ThemeState } from "@seans-browser/browser-core";
 import { BrowserWindowController } from "./BrowserWindowController";
 import type { SqliteFavoritesRepository } from "./data/SqliteFavoritesRepository";
-import { FAVORITES_PAGE_URL, HISTORY_PAGE_URL, isInternalPageUrl } from "./InternalPages";
+import {
+  FAVORITES_PAGE_URL,
+  HISTORY_PAGE_URL,
+  SETTINGS_PAGE_URL,
+  isInternalPageUrl
+} from "./InternalPages";
 import type { TabDropPlacement, TabStripPlacement } from "./types";
 
 type ControllerResolver = (sender: WebContents) => BrowserWindowController | undefined;
+interface IPCHandlerOptions {
+  getThemeState: () => Promise<ThemeState>;
+  setThemePreference: (preference: ThemePreference) => Promise<ThemeState>;
+}
 interface ContextMenuPosition {
   x: number;
   y: number;
@@ -22,7 +32,10 @@ interface CreateFavoriteFolderInput {
   title: string;
 }
 
-export function registerIPCHandlers(resolveController: ControllerResolver): void {
+export function registerIPCHandlers(
+  resolveController: ControllerResolver,
+  options: IPCHandlerOptions
+): void {
   const tabDragSessions = new Map<
     string,
     {
@@ -112,6 +125,9 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
   });
   ipcMain.handle("browser:openHistory", (event) => {
     getController(event).tabManager.createTab(HISTORY_PAGE_URL);
+  });
+  ipcMain.handle("browser:openSettings", (event) => {
+    getController(event).tabManager.createTab(SETTINGS_PAGE_URL);
   });
 
   ipcMain.handle("tab:create", async (event, url?: string) => {
@@ -266,6 +282,13 @@ export function registerIPCHandlers(resolveController: ControllerResolver): void
       return;
     }
     getController(event).setTabStripPlacement(placement);
+  });
+  ipcMain.handle("theme:getState", () => options.getThemeState());
+  ipcMain.handle("theme:setPreference", (_event, preference: ThemePreference) => {
+    if (!["system", "light", "dark"].includes(preference)) {
+      return options.getThemeState();
+    }
+    return options.setThemePreference(preference);
   });
 }
 

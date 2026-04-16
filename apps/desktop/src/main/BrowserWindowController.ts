@@ -1,5 +1,5 @@
 import { BrowserWindow, WebContents } from "electron";
-import type { OpenTabRecord, OpenTabsWindowRecord } from "@seans-browser/browser-core";
+import type { OpenTabRecord, OpenTabsWindowRecord, ThemeState } from "@seans-browser/browser-core";
 import type { BrowserDataManager } from "./BrowserDataManager";
 import { HistoryManager } from "./HistoryManager";
 import { HISTORY_PAGE_URL } from "./InternalPages";
@@ -90,6 +90,10 @@ export class BrowserWindowController {
 
   getTabStripPlacement(): TabStripPlacement {
     return this.windowManager.getTabStripPlacement();
+  }
+
+  sendThemeState(themeState: ThemeState): void {
+    this.sendToChrome("theme:changed", themeState);
   }
 
   private sendToChrome(channel: string, ...args: unknown[]): void {

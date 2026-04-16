@@ -2,6 +2,8 @@ import type { SerializedTab, TabId } from "@seans-browser/browser-core";
 
 type TabDropPlacement = "before" | "after" | "end";
 type TabStripPlacement = "top" | "left" | "right";
+type ThemePreference = "system" | "light" | "dark";
+type ThemeState = { preference: ThemePreference; resolvedTheme: "light" | "dark" };
 
 interface HistoryEntry {
   url: string;
@@ -60,6 +62,7 @@ interface BrowserAPI {
     moveActiveTabToNewWindow: () => Promise<void>;
     openFavorites: () => Promise<void>;
     openHistory: () => Promise<void>;
+    openSettings: () => Promise<void>;
     sleepActiveTab: () => Promise<void>;
   };
   layout: {
@@ -67,6 +70,10 @@ interface BrowserAPI {
     setChromeHeight: (height: number) => Promise<void>;
     setChromeOverlayHeight: (height: number) => Promise<void>;
     setTabStripPlacement: (placement: TabStripPlacement) => Promise<void>;
+  };
+  theme: {
+    getState: () => Promise<ThemeState>;
+    setPreference: (preference: ThemePreference) => Promise<ThemeState>;
   };
   on: (channel: string, cb: (...args: unknown[]) => void) => void;
   off: (channel: string, cb: (...args: unknown[]) => void) => void;

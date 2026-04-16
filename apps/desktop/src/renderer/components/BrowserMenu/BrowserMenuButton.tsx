@@ -242,6 +242,10 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             label="Favorites"
             onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openFavorites())}
           />
+          <BrowserMenuItem
+            label="Settings"
+            onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openSettings())}
+          />
           <div className="my-1 h-px bg-border" />
           <BrowserMenuItem
             disabled={!activeTab?.canGoBack || !activeTabId}

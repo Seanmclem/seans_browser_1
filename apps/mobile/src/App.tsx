@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   Text,
   TouchableOpacity,
+  useColorScheme,
   type ViewStyle,
   View
 } from "react-native";
@@ -31,6 +32,8 @@ export default function App() {
   const setActiveTab = useBrowserStore((state) => state.setActiveTab);
   const updateTab = useBrowserStore((state) => state.updateTab);
   const setDraftAddress = useBrowserStore((state) => state.setDraftAddress);
+  const colorScheme = useColorScheme();
+  const themeClassName = colorScheme === "light" ? "theme-light" : "theme-dark";
   useSleepWatcher();
 
   const webViewRefs = useRef<Record<string, WebView | null>>({});
@@ -90,7 +93,7 @@ export default function App() {
   };
 
   return (
-    <View className="theme-dark flex-1 bg-bg-base">
+    <View className={`${themeClassName} flex-1 bg-bg-base`}>
       <View className="absolute -right-[30px] -top-10 h-[240px] w-[240px] rounded-full bg-accent/[0.16]" />
       <View className="absolute -left-[90px] bottom-20 h-[320px] w-[320px] rounded-full bg-accent-subtle/30" />
       <SafeAreaView className="flex-1 bg-bg-base/60">

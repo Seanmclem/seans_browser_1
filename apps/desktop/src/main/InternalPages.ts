@@ -1,19 +1,32 @@
 import type { Session } from "electron";
-import type { FavoriteFolderRecord, FavoriteRecord } from "@seans-browser/browser-core";
+import type {
+  FavoriteFolderRecord,
+  FavoriteRecord,
+  ThemePreference
+} from "@seans-browser/browser-core";
 import type { BrowserDataManager } from "./BrowserDataManager";
 import type { HistoryEntry } from "./HistoryManager";
 
 export const INTERNAL_PAGE_SCHEME = "seans-browser";
 export const FAVORITES_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://favorites/`;
 export const HISTORY_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://history/`;
+export const SETTINGS_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://settings/`;
 
 const HISTORY_RESULT_LIMIT = 200;
+
+interface InternalPageOptions {
+  onThemePreferenceChanged?: () => void;
+}
 
 export function isInternalPageUrl(url: string): boolean {
   return url.startsWith(`${INTERNAL_PAGE_SCHEME}://`);
 }
 
-export function registerInternalPages(session: Session, dataManager: BrowserDataManager): void {
+export function registerInternalPages(
+  session: Session,
+  dataManager: BrowserDataManager,
+  options: InternalPageOptions = {}
+): void {
   session.protocol.handle(INTERNAL_PAGE_SCHEME, async (request) => {
     const url = new URL(request.url);
 
@@ -34,6 +47,18 @@ export function registerInternalPages(session: Session, dataManager: BrowserData
       const folders = await dataManager.favorites.listFavoriteFolders(folderId);
       const favorites = await dataManager.favorites.listFavorites(folderId);
       return htmlResponse(renderFavoritesPage(folders, favorites, currentFolder, breadcrumbs));
+    }
+
+    if (url.hostname === "settings") {
+      const requestedTheme = url.searchParams.get("theme");
+      const currentPreference = await dataManager.getThemePreference();
+      if (isThemePreference(requestedTheme) && requestedTheme !== currentPreference) {
+        await dataManager.setThemePreference(requestedTheme);
+        options.onThemePreferenceChanged?.();
+      }
+
+      const themePreference = await dataManager.getThemePreference();
+      return htmlResponse(renderSettingsPage(themePreference));
     }
 
     return htmlResponse(renderNotFoundPage(url), 404);
@@ -185,6 +210,51 @@ function renderFavorite(favorite: FavoriteRecord): string {
   </a>`;
 }
 
+function renderSettingsPage(themePreference: ThemePreference): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Settings</title>
+    ${sharedPageStyles()}
+  </head>
+  <body>
+    <main>
+      <h1>Settings</h1>
+      <p class="subtitle">Local browser preferences stored through the shared settings repository. Settings are shaped for later sync, but stay native and local on this device today.</p>
+      <section class="settings-card" aria-labelledby="appearance-heading">
+        <div>
+          <h2 id="appearance-heading">Appearance</h2>
+          <p class="settings-description">Choose whether the browser chrome follows the system color scheme or uses a fixed light/dark theme.</p>
+        </div>
+        <form class="settings-form" action="${SETTINGS_PAGE_URL}" method="get">
+          ${renderThemeOption("system", themePreference, "System", "Follow macOS appearance changes automatically.")}
+          ${renderThemeOption("light", themePreference, "Light", "Use the light browser chrome colors.")}
+          ${renderThemeOption("dark", themePreference, "Dark", "Use the dark browser chrome colors.")}
+          <button type="submit">Save Theme</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
+function renderThemeOption(
+  value: ThemePreference,
+  selected: ThemePreference,
+  label: string,
+  description: string
+): string {
+  return `<label class="setting-option">
+    <input type="radio" name="theme" value="${value}" ${selected === value ? "checked" : ""} />
+    <span>
+      <strong>${label}</strong>
+      <small>${description}</small>
+    </span>
+  </label>`;
+}
+
 function renderNotFoundPage(url: URL): string {
   return `<!doctype html>
 <html lang="en">
@@ -272,9 +342,71 @@ function sharedPageStyles(): string {
       padding: 0 20px;
     }
 
+    h2 {
+      margin: 0 0 8px;
+      font-size: 26px;
+    }
+
     .history-list {
       display: grid;
       gap: 10px;
+    }
+
+    .settings-card {
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 28px;
+      background: #0b1628;
+      display: grid;
+      gap: 22px;
+      padding: 24px;
+    }
+
+    .settings-description {
+      color: #91a4bc;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .settings-form {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+      margin: 0;
+    }
+
+    .settings-form button {
+      justify-self: start;
+      min-height: 44px;
+    }
+
+    .setting-option {
+      align-items: flex-start;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 20px;
+      cursor: pointer;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: auto 1fr;
+      padding: 16px;
+    }
+
+    .setting-option:hover {
+      border-color: rgba(56, 189, 248, 0.42);
+    }
+
+    .setting-option input {
+      margin-top: 4px;
+    }
+
+    .setting-option strong,
+    .setting-option small {
+      display: block;
+    }
+
+    .setting-option small {
+      color: #91a4bc;
+      line-height: 1.5;
+      margin-top: 4px;
     }
 
     .history-item {
@@ -382,4 +514,8 @@ function escapeHtml(value: string): string {
 
 function escapeAttribute(value: string): string {
   return escapeHtml(value).replaceAll("`", "&#96;");
+}
+
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
 }
