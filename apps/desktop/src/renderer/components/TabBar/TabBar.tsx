@@ -103,8 +103,8 @@ export function TabBar({ orientation, showBrowserMenu }: TabBarProps = {}) {
       : "relative flex max-w-[calc(100%-120px)] shrink gap-[10px] overflow-x-auto pb-0.5";
   const newTabButtonClassName =
     tabStripDirection === "vertical"
-      ? "relative inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-[14px] border border-cyan-300/35 bg-sky-800/90 text-[22px] leading-none text-white transition-colors duration-150 hover:bg-sky-700 active:bg-sky-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
-      : "relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-[14px] border border-cyan-300/35 bg-sky-800/90 text-[24px] leading-none text-white transition-colors duration-150 hover:bg-sky-700 active:bg-sky-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200";
+      ? "relative inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-[14px] border border-tab-border-active bg-accent text-[22px] leading-none text-bg-base transition-colors duration-150 hover:bg-accent/85 active:bg-accent-subtle active:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tab-border-active"
+      : "relative inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-[14px] border border-tab-border-active bg-accent text-[24px] leading-none text-bg-base transition-colors duration-150 hover:bg-accent/85 active:bg-accent-subtle active:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tab-border-active";
 
   return (
     <div className={containerClassName} style={DRAG_REGION_STYLE}>

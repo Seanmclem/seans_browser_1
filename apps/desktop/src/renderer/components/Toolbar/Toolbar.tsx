@@ -1,10 +1,10 @@
 import { useTabStore } from "../../store/tabStore";
 
 const TOOL_CLASS =
-  "inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-[14px] border-0 bg-slate-700/85 px-[14px] py-[10px] text-[18px] leading-none text-slate-50 transition-[background,opacity] duration-150 hover:bg-slate-600 disabled:cursor-default disabled:opacity-45 disabled:hover:bg-slate-700/85";
+  "inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-[14px] border-0 bg-bg-surface px-[14px] py-[10px] text-[18px] leading-none text-text-primary transition-[background,opacity] duration-150 hover:bg-accent-subtle disabled:cursor-default disabled:opacity-45 disabled:hover:bg-bg-surface";
 
 const SECONDARY_TOOL_CLASS =
-  "cursor-pointer rounded-[14px] border-0 bg-orange-500/20 px-[14px] py-[10px] text-[13px] text-orange-300 transition-[background,opacity] duration-150 hover:bg-orange-500/30";
+  "cursor-pointer rounded-[14px] border-0 bg-accent-subtle px-[14px] py-[10px] text-[13px] text-accent transition-[background,opacity] duration-150 hover:bg-accent-subtle/80";
 
 export function Toolbar() {
   const { activeTabId, tabs } = useTabStore();

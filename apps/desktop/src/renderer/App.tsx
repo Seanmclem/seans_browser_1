@@ -44,9 +44,9 @@ export default function App() {
   if (surface === "side-tabs") {
     return (
       <div
-        className={`h-screen bg-slate-900 text-slate-50 ${
+        className={`theme-dark h-screen bg-bg-chrome text-text-primary ${
           tabStripPlacement === "right" ? "border-l" : "border-r"
-        } border-slate-400/10`}
+        } border-border`}
       >
         <TabBar orientation="vertical" showBrowserMenu={false} />
       </div>
@@ -54,10 +54,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-50">
+    <div className="theme-dark min-h-screen bg-transparent text-text-primary">
       <header
         ref={chromeRef}
-        className="app-region-drag fixed inset-x-0 top-0 z-[100] border-b border-slate-400/10 bg-slate-900"
+        className="app-region-drag fixed inset-x-0 top-0 z-[100] border-b border-border bg-bg-chrome"
       >
         {tabStripPlacement === "top" ? (
           <TabBar orientation="horizontal" showBrowserMenu />
@@ -76,7 +76,7 @@ export default function App() {
 function SideTabTopBar({ placement }: { placement: Exclude<TabStripPlacement, "top"> }) {
   return (
     <div className="relative flex items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]">
-      <span className="rounded-full border border-slate-500/35 bg-slate-800/85 px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+      <span className="rounded-full border border-border bg-bg-surface px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-text-muted">
         Tabs on {placement}
       </span>
       <div className="min-w-4 flex-1 self-stretch" />

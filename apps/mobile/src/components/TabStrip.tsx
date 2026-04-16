@@ -26,19 +26,19 @@ export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: T
               onPress={() => onActivate(tab.id)}
               className={`min-w-[180px] max-w-[220px] flex-row items-center gap-2 rounded-[18px] border px-[14px] py-3 ${
                 isActive
-                  ? "border-cyan-300/45 bg-cyan-700/25"
-                  : "border-slate-400/15 bg-slate-900/60"
+                  ? "border-tab-border-active bg-accent-subtle"
+                  : "border-border bg-bg-surface"
               }`}
             >
               <Text
                 numberOfLines={1}
                 className={`flex-1 text-[13px] font-semibold ${
-                  isActive ? "text-slate-50" : "text-blue-100"
+                  isActive ? "text-text-primary" : "text-text-muted"
                 }`}
               >
                 {tab.title || tab.url}
               </Text>
-              <Text className="text-[10px] uppercase text-orange-500">
+              <Text className="text-[10px] uppercase text-accent">
                 {tab.state === "soft-sleeping"
                   ? "soft"
                   : tab.state === "hard-sleeping"
@@ -47,9 +47,9 @@ export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: T
               </Text>
               <TouchableOpacity
                 onPress={() => onClose(tab.id)}
-                className="h-[22px] w-[22px] items-center justify-center rounded-full bg-slate-400/15"
+                className="h-[22px] w-[22px] items-center justify-center rounded-full bg-bg-base/30"
               >
-                <Text className="text-white">x</Text>
+                <Text className="text-text-primary">x</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           );
@@ -58,9 +58,9 @@ export function TabStrip({ tabs, activeTabId, onActivate, onClose, onCreate }: T
       <TouchableOpacity
         activeOpacity={0.88}
         onPress={onCreate}
-        className="h-[42px] w-[42px] items-center justify-center rounded-2xl bg-cyan-400"
+        className="h-[42px] w-[42px] items-center justify-center rounded-2xl bg-accent"
       >
-        <Text className="text-[26px] text-cyan-950">+</Text>
+        <Text className="text-[26px] text-bg-base">+</Text>
       </TouchableOpacity>
     </View>
   );

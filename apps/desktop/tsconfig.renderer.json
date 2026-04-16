@@ -8,9 +8,10 @@
     "baseUrl": ".",
     "paths": {
       "@seans-browser/browser-core": ["../../packages/browser-core/src/index.ts"],
-      "@seans-browser/browser-core/*": ["../../packages/browser-core/src/*"]
+      "@seans-browser/browser-core/*": ["../../packages/browser-core/src/*"],
+      "@seans-browser/browser-theme": ["../../packages/browser-theme/src/index.ts"],
+      "@seans-browser/browser-theme/*": ["../../packages/browser-theme/src/*"]
     }
   },
   "include": ["src/renderer/**/*", "src/shared/**/*"]
 }
-

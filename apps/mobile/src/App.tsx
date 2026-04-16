@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { normalizeURL } from "@seans-browser/browser-core";
+import { browserTheme } from "@seans-browser/browser-theme";
 import { WebView } from "react-native-webview";
 import type { WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
 import { NavigationBar } from "./components/NavigationBar";
@@ -19,7 +20,7 @@ import { useSleepWatcher } from "./hooks/useSleepWatcher";
 import { useBrowserStore } from "./store/browserStore";
 import { WEB_VIEW_MEDIA_POLICY_PROPS } from "./webViewMediaPolicy";
 
-const WEB_VIEW_STYLE: ViewStyle = { flex: 1, backgroundColor: "#fff" };
+const WEB_VIEW_STYLE: ViewStyle = { flex: 1, backgroundColor: browserTheme.light["bg-surface"] };
 
 export default function App() {
   const tabs = useBrowserStore((state) => state.tabs);
@@ -89,20 +90,20 @@ export default function App() {
   };
 
   return (
-    <View className="flex-1 bg-[#020617]">
-      <View className="absolute -right-[30px] -top-10 h-[240px] w-[240px] rounded-full bg-cyan-400/[0.16]" />
-      <View className="absolute -left-[90px] bottom-20 h-[320px] w-[320px] rounded-full bg-orange-500/10" />
-      <SafeAreaView className="flex-1 bg-slate-950/60">
+    <View className="theme-dark flex-1 bg-bg-base">
+      <View className="absolute -right-[30px] -top-10 h-[240px] w-[240px] rounded-full bg-accent/[0.16]" />
+      <View className="absolute -left-[90px] bottom-20 h-[320px] w-[320px] rounded-full bg-accent-subtle/30" />
+      <SafeAreaView className="flex-1 bg-bg-base/60">
         <StatusBar style="light" />
         <KeyboardAvoidingView
           behavior={Platform.select({ ios: "padding", default: undefined })}
           className="flex-1 gap-[14px] px-4 pb-4"
         >
-          <View className="mt-2 gap-[14px] rounded-[28px] border border-cyan-300/15 bg-slate-900/70 p-[18px]">
-            <Text className="text-[11px] font-bold uppercase tracking-[1.4px] text-cyan-300">
+          <View className="mt-2 gap-[14px] rounded-[28px] border border-border bg-bg-chrome p-[18px]">
+            <Text className="text-[11px] font-bold uppercase tracking-[1.4px] text-accent">
               SeanBrowser Mobile
             </Text>
-            <Text className="text-[28px] font-bold leading-[31px] text-slate-50">
+            <Text className="text-[28px] font-bold leading-[31px] text-text-primary">
               Expo browser shell with tab sleep states
             </Text>
             <TabStrip
@@ -125,7 +126,7 @@ export default function App() {
             />
           </View>
 
-          <View className="flex-1 overflow-hidden rounded-[30px] border border-slate-400/10 bg-slate-950/80">
+          <View className="flex-1 overflow-hidden rounded-[30px] border border-border bg-bg-base">
             {tabs.map((tab) => {
               if (tab.state === "hard-sleeping" && tab.id !== activeTabId) {
                 return null;
@@ -157,12 +158,12 @@ export default function App() {
 
             {!activeTab ? (
               <View className="flex-1 items-center justify-center gap-[14px]">
-                <Text className="text-[22px] font-bold text-white">No active tab</Text>
+                <Text className="text-[22px] font-bold text-text-primary">No active tab</Text>
                 <TouchableOpacity
                   onPress={() => createTab()}
-                  className="rounded-full bg-cyan-400 px-[18px] py-3"
+                  className="rounded-full bg-accent px-[18px] py-3"
                 >
-                  <Text className="font-bold text-cyan-950">Open a new tab</Text>
+                  <Text className="font-bold text-bg-base">Open a new tab</Text>
                 </TouchableOpacity>
               </View>
             ) : null}

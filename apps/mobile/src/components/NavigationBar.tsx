@@ -1,8 +1,9 @@
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { browserTheme } from "@seans-browser/browser-theme";
 
-const ACTION_CLASS = "rounded-[14px] bg-slate-900/60 px-[14px] py-[10px]";
+const ACTION_CLASS = "rounded-[14px] bg-bg-surface px-[14px] py-[10px]";
 const DISABLED_ACTION_CLASS = `${ACTION_CLASS} opacity-40`;
-const ACTION_TEXT_CLASS = "font-semibold text-slate-50";
+const ACTION_TEXT_CLASS = "font-semibold text-text-primary";
 
 interface NavigationBarProps {
   value: string;
@@ -46,8 +47,8 @@ export function NavigationBar(props: NavigationBarProps) {
         onChangeText={props.onChangeText}
         onSubmitEditing={props.onSubmit}
         placeholder="Search or enter URL"
-        placeholderTextColor="#94a3b8"
-        className="rounded-[18px] border border-cyan-300/20 bg-slate-950/75 px-4 py-[14px] text-slate-50"
+        placeholderTextColor={browserTheme.dark["text-muted"]}
+        className="rounded-[18px] border border-border bg-bg-base px-4 py-[14px] text-text-primary"
         value={props.value}
       />
     </View>

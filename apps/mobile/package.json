@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@seans-browser/browser-core": "file:../../packages/browser-core",
+    "@seans-browser/browser-theme": "file:../../packages/browser-theme",
     "expo": "^55.0.14",
     "expo-dev-client": "~55.0.27",
     "expo-status-bar": "~55.0.5",

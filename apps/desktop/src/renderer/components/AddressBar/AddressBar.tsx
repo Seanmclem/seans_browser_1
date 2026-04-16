@@ -31,15 +31,15 @@ export function AddressBar() {
 
   return (
     <form
-      className="app-region-no-drag grid w-full grid-cols-[auto_1fr] items-center gap-[10px] rounded-[18px] border border-sky-300/15 bg-slate-900/85 px-[14px] py-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="app-region-no-drag grid w-full grid-cols-[auto_1fr] items-center gap-[10px] rounded-[18px] border border-border bg-bg-base px-[14px] py-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
       onSubmit={handleSubmit}
     >
-      <span className="rounded-full bg-cyan-400/10 px-[10px] py-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-300">
+      <span className="rounded-full bg-accent-subtle px-[10px] py-[6px] text-[11px] font-bold uppercase tracking-[0.08em] text-accent">
         {activeTab?.url.startsWith("https://") ? "Secure" : "Web"}
       </span>
       <input
         ref={inputRef}
-        className="w-full border-0 bg-transparent text-[14px] text-slate-50 outline-none"
+        className="w-full border-0 bg-transparent text-[14px] text-text-primary outline-none placeholder:text-text-muted"
         value={isFocused ? inputValue : activeTab?.url ?? ""}
         onBlur={() => setIsFocused(false)}
         onChange={(event) => setInputValue(event.target.value)}

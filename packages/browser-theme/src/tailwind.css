@@ -1,0 +1,38 @@
+@theme {
+  --color-bg-base: var(--browser-color-bg-base);
+  --color-bg-chrome: var(--browser-color-bg-chrome);
+  --color-bg-surface: var(--browser-color-bg-surface);
+  --color-tab-border-active: var(--browser-color-tab-border-active);
+  --color-border: var(--browser-color-border);
+  --color-text-primary: var(--browser-color-text-primary);
+  --color-text-muted: var(--browser-color-text-muted);
+  --color-accent: var(--browser-color-accent);
+  --color-accent-subtle: var(--browser-color-accent-subtle);
+}
+
+:root,
+.theme-light {
+  color-scheme: light;
+  --browser-color-bg-base: #f9f9fb;
+  --browser-color-bg-chrome: #d8d8dc;
+  --browser-color-bg-surface: #ffffff;
+  --browser-color-tab-border-active: #0060df;
+  --browser-color-border: #cfcfd8;
+  --browser-color-text-primary: #15141a;
+  --browser-color-text-muted: #5b5b66;
+  --browser-color-accent: #0060df;
+  --browser-color-accent-subtle: #deeafc;
+}
+
+.theme-dark {
+  color-scheme: dark;
+  --browser-color-bg-base: #1c1b22;
+  --browser-color-bg-chrome: #2b2a33;
+  --browser-color-bg-surface: #46454f;
+  --browser-color-tab-border-active: #00b3f4;
+  --browser-color-border: #4a4950;
+  --browser-color-text-primary: #fbfbfe;
+  --browser-color-text-muted: #9e9ea7;
+  --browser-color-accent: #00b3f4;
+  --browser-color-accent-subtle: #003050;
+}

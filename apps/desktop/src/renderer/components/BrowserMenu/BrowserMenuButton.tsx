@@ -201,7 +201,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
     <>
       <button
         aria-label="Open browser menu"
-        className={`app-region-no-drag relative inline-flex h-10 w-10 cursor-pointer flex-col items-center justify-center gap-[4px] rounded-[14px] border border-slate-400/30 bg-slate-800/90 text-white transition-colors duration-150 hover:bg-slate-700 active:bg-slate-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200 ${className}`}
+        className={`app-region-no-drag relative inline-flex h-10 w-10 cursor-pointer flex-col items-center justify-center gap-[4px] rounded-[14px] border border-border bg-bg-surface text-text-primary transition-colors duration-150 hover:bg-accent-subtle active:bg-accent-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tab-border-active ${className}`}
         onClick={handleOpenMenu}
         onMouseLeave={(event) => event.currentTarget.blur()}
         type="button"
@@ -214,7 +214,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
       {browserMenu ? (
         <div
           ref={menuRef}
-          className="app-region-no-drag fixed z-[300] w-[260px] overflow-hidden rounded-2xl border border-slate-500/40 bg-slate-950 p-1.5 text-[13px] text-slate-100 shadow-[0_18px_46px_rgba(2,6,23,0.48)]"
+          className="app-region-no-drag fixed z-[300] w-[260px] overflow-hidden rounded-2xl border border-border bg-bg-base p-1.5 text-[13px] text-text-primary shadow-[0_18px_46px_rgba(2,6,23,0.48)]"
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
           style={{
@@ -242,7 +242,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             label="Favorites"
             onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openFavorites())}
           />
-          <div className="my-1 h-px bg-slate-700/80" />
+          <div className="my-1 h-px bg-border" />
           <BrowserMenuItem
             disabled={!activeTab?.canGoBack || !activeTabId}
             label="Back"
@@ -277,7 +277,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
               })
             }
           />
-          <div className="my-1 h-px bg-slate-700/80" />
+          <div className="my-1 h-px bg-border" />
           <BrowserMenuItem
             checked={tabStripPlacement === "top"}
             label="Tabs on Top"
@@ -293,7 +293,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             label="Tabs on Right"
             onClick={() => runBrowserMenuAction(() => changeTabPlacement("right"))}
           />
-          <div className="my-1 h-px bg-slate-700/80" />
+          <div className="my-1 h-px bg-border" />
           <BrowserMenuItem
             disabled={!activeTabId}
             label="Move Active Tab to New Window"
@@ -319,45 +319,45 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
       {favoriteModal ? (
         <div
           ref={modalRef}
-          className="app-region-no-drag fixed right-4 top-[72px] z-[320] w-[380px] rounded-3xl border border-slate-500/40 bg-slate-950 p-4 text-[13px] text-slate-100 shadow-[0_22px_60px_rgba(2,6,23,0.58)]"
+          className="app-region-no-drag fixed right-4 top-[72px] z-[320] w-[380px] rounded-3xl border border-border bg-bg-base p-4 text-[13px] text-text-primary shadow-[0_22px_60px_rgba(2,6,23,0.58)]"
           onClick={(event) => event.stopPropagation()}
           onContextMenu={(event) => event.preventDefault()}
         >
           <form className="grid gap-3" onSubmit={saveFavorite}>
             <div>
               <h2 className="m-0 text-lg font-bold tracking-[-0.02em]">Add Favorite</h2>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-text-muted">
                 Save this page locally. You can edit the title, URL, and virtual folder first.
               </p>
             </div>
             <label className="grid gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
                 Title
               </span>
               <input
-                className="rounded-2xl border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-sky-400"
+                className="rounded-2xl border border-border bg-bg-chrome px-3 py-2 text-sm text-text-primary outline-none focus:border-tab-border-active"
                 value={favoriteTitle}
                 onChange={(event) => setFavoriteTitle(event.target.value)}
                 required
               />
             </label>
             <label className="grid gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
                 URL
               </span>
               <input
-                className="rounded-2xl border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-sky-400"
+                className="rounded-2xl border border-border bg-bg-chrome px-3 py-2 text-sm text-text-primary outline-none focus:border-tab-border-active"
                 value={favoriteUrl}
                 onChange={(event) => setFavoriteUrl(event.target.value)}
                 required
               />
             </label>
             <label className="grid gap-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">
                 Folder
               </span>
               <select
-                className="rounded-2xl border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-sky-400"
+                className="rounded-2xl border border-border bg-bg-chrome px-3 py-2 text-sm text-text-primary outline-none focus:border-tab-border-active"
                 value={favoriteFolderId}
                 onChange={(event) => setFavoriteFolderId(event.target.value)}
               >
@@ -371,13 +371,13 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             </label>
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <input
-                className="rounded-2xl border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-sky-400"
+                className="rounded-2xl border border-border bg-bg-chrome px-3 py-2 text-sm text-text-primary outline-none focus:border-tab-border-active"
                 value={newFolderTitle}
                 onChange={(event) => setNewFolderTitle(event.target.value)}
                 placeholder={favoriteFolderId ? "New nested folder" : "New top-level folder"}
               />
               <button
-                className="rounded-2xl border border-slate-500/50 bg-slate-800 px-3 py-2 font-semibold text-slate-100 transition-colors hover:bg-slate-700 disabled:opacity-40"
+                className="rounded-2xl border border-border bg-bg-surface px-3 py-2 font-semibold text-text-primary transition-colors hover:bg-accent-subtle disabled:opacity-40"
                 disabled={!newFolderTitle.trim()}
                 onClick={createFavoriteFolder}
                 type="button"
@@ -392,14 +392,14 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             ) : null}
             <div className="mt-1 grid grid-cols-2 gap-2">
               <button
-                className="rounded-2xl border border-slate-600 bg-slate-900 px-3 py-2 font-semibold text-slate-200 transition-colors hover:bg-slate-800"
+                className="rounded-2xl border border-border bg-bg-chrome px-3 py-2 font-semibold text-text-primary transition-colors hover:bg-bg-surface"
                 onClick={() => setFavoriteModal(null)}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="rounded-2xl border border-sky-400/50 bg-sky-600 px-3 py-2 font-bold text-white transition-colors hover:bg-sky-500"
+                className="rounded-2xl border border-tab-border-active bg-accent px-3 py-2 font-bold text-bg-base transition-colors hover:bg-accent/85"
                 type="submit"
               >
                 Save Favorite
@@ -436,7 +436,7 @@ function BrowserMenuItem({
   const toneClass =
     tone === "danger"
       ? "text-red-200 enabled:hover:bg-red-950/80"
-      : "text-slate-100 enabled:hover:bg-sky-700";
+      : "text-text-primary enabled:hover:bg-accent-subtle";
 
   return (
     <button
@@ -445,9 +445,9 @@ function BrowserMenuItem({
       onClick={onClick}
       type="button"
     >
-      <span className="text-[12px] text-cyan-200">{checked ? "*" : ""}</span>
+      <span className="text-[12px] text-accent">{checked ? "*" : ""}</span>
       <span>{label}</span>
-      {shortcut ? <span className="text-[11px] text-slate-400">{shortcut}</span> : null}
+      {shortcut ? <span className="text-[11px] text-text-muted">{shortcut}</span> : null}
     </button>
   );
 }

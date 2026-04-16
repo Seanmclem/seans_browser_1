@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@seans-browser/browser-core": "file:../../packages/browser-core",
+    "@seans-browser/browser-theme": "file:../../packages/browser-theme",
     "@tailwindcss/vite": "^4.2.2",
     "better-sqlite3": "^12.9.0",
     "dayjs": "^1.11.13",
