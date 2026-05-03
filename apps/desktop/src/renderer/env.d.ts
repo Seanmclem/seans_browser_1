@@ -1,6 +1,7 @@
 import type { SerializedTab, TabId } from "@seans-browser/browser-core";
 
 type TabDropPlacement = "before" | "after" | "end";
+type FavoritesBarVisibility = "always" | "never";
 type TabStripPlacement = "top" | "left" | "right";
 type ThemePreference = "system" | "light" | "dark";
 type ThemeState = { preference: ThemePreference; resolvedTheme: "light" | "dark" };
@@ -16,6 +17,25 @@ interface FavoriteFolderOption {
   label: string;
   parentFolderId: string | null;
   title: string;
+}
+
+interface FavoritesBarItem {
+  favicon?: string | null;
+  id: string;
+  title: string;
+  type: "favorite" | "folder";
+  url: string;
+}
+
+interface DownloadEntry {
+  filename: string;
+  id: string;
+  receivedBytes: number;
+  savePath: string;
+  startedAt: string;
+  state: "in-progress" | "completed" | "cancelled" | "interrupted";
+  totalBytes: number;
+  url: string;
 }
 
 interface BrowserAPI {
@@ -35,6 +55,7 @@ interface BrowserAPI {
     moveToNewWindow: (id: TabId) => Promise<void>;
     showContextMenu: (id: TabId, position: { x: number; y: number }) => Promise<void>;
     sleep: (id: TabId) => Promise<void>;
+    setPinned: (id: TabId, pinned: boolean) => Promise<void>;
   };
   nav: {
     back: (id: TabId) => Promise<void>;
@@ -53,22 +74,36 @@ interface BrowserAPI {
       title: string;
       url: string;
     }) => Promise<string | null>;
+    getFavoriteStatus: (url: string) => Promise<{ favoriteId: string | null; isFavorited: boolean }>;
     closeActiveTab: () => Promise<void>;
     createFavoriteFolder: (input: {
       parentFolderId?: string | null;
       title: string;
     }) => Promise<FavoriteFolderOption | null>;
     listFavoriteFolders: () => Promise<FavoriteFolderOption[]>;
+    listFavoritesBarItems: () => Promise<FavoritesBarItem[]>;
+    listDownloads: () => Promise<DownloadEntry[]>;
     moveActiveTabToNewWindow: () => Promise<void>;
+    hasRestorableSession: () => Promise<boolean>;
+    openDownloads: () => Promise<void>;
     openFavorites: () => Promise<void>;
     openHistory: () => Promise<void>;
     openSettings: () => Promise<void>;
+    restoreLastSession: () => Promise<number>;
     sleepActiveTab: () => Promise<void>;
+    toggleFavorite: (input: {
+      favicon?: string | null;
+      parentFolderId?: string | null;
+      title: string;
+      url: string;
+    }) => Promise<{ favoriteId: string | null; isFavorited: boolean }>;
   };
   layout: {
+    getFavoritesBarVisibility: () => Promise<FavoritesBarVisibility>;
     getTabStripPlacement: () => Promise<TabStripPlacement>;
     setChromeHeight: (height: number) => Promise<void>;
     setChromeOverlayHeight: (height: number) => Promise<void>;
+    setFavoritesBarVisibility: (visibility: FavoritesBarVisibility) => Promise<FavoritesBarVisibility>;
     setTabStripPlacement: (placement: TabStripPlacement) => Promise<void>;
   };
   theme: {

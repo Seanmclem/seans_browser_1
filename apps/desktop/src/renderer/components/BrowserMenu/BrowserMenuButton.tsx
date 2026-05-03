@@ -6,9 +6,14 @@ import {
   type FormEvent,
   type MouseEvent
 } from "react";
+import { createPortal } from "react-dom";
 import { Menu } from "lucide-react";
 import { useTabStore } from "../../store/tabStore";
-import { useUIStore, type TabStripPlacement } from "../../store/uiStore";
+import {
+  useUIStore,
+  type FavoritesBarVisibility,
+  type TabStripPlacement
+} from "../../store/uiStore";
 
 const BROWSER_MENU_WIDTH = 260;
 const BROWSER_MENU_OVERLAY_PADDING = 16;
@@ -31,6 +36,8 @@ interface BrowserMenuButtonProps {
 export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
   const { activeTabId, setActiveTabId, tabs } = useTabStore();
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+  const favoritesBarVisibility = useUIStore((state) => state.favoritesBarVisibility);
+  const setFavoritesBarVisibility = useUIStore((state) => state.setFavoritesBarVisibility);
   const tabStripPlacement = useUIStore((state) => state.tabStripPlacement);
   const setTabStripPlacement = useUIStore((state) => state.setTabStripPlacement);
   const [browserMenu, setBrowserMenu] = useState<BrowserMenuState | null>(null);
@@ -39,6 +46,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
   const [favoriteModal, setFavoriteModal] = useState<AddFavoriteModalState | null>(null);
   const [favoriteTitle, setFavoriteTitle] = useState("");
   const [favoriteUrl, setFavoriteUrl] = useState("");
+  const [hasRestorableSession, setHasRestorableSession] = useState(false);
   const [newFolderTitle, setNewFolderTitle] = useState("");
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -113,6 +121,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
     const bounds = event.currentTarget.getBoundingClientRect();
     event.currentTarget.blur();
     const menuX = bounds.right - BROWSER_MENU_WIDTH;
+    void window.browserAPI.browser.hasRestorableSession().then(setHasRestorableSession);
     void window.browserAPI.layout.setChromeOverlayHeight(bounds.bottom + 80);
     setBrowserMenu({
       x: Math.max(12, Math.min(menuX, window.innerWidth - BROWSER_MENU_WIDTH - 12)),
@@ -120,7 +129,7 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
     });
   };
 
-  const runBrowserMenuAction = (action: () => Promise<void> | void) => {
+  const runBrowserMenuAction = (action: () => Promise<unknown> | void) => {
     setBrowserMenu(null);
     void action();
   };
@@ -205,18 +214,13 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
     await window.browserAPI.layout.setTabStripPlacement(placement);
   };
 
-  return (
-    <>
-      <button
-        aria-label="Open browser menu"
-        className={`app-region-no-drag relative inline-flex h-10 w-10 cursor-pointer flex-col items-center justify-center gap-[4px] rounded-[14px] border border-border bg-bg-surface text-text-primary transition-colors duration-150 hover:bg-accent-subtle active:bg-accent-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tab-border-active ${className}`}
-        onClick={handleOpenMenu}
-        onMouseLeave={(event) => event.currentTarget.blur()}
-        type="button"
-      >
-        <Menu aria-hidden size={20} strokeWidth={2.35} />
-      </button>
+  const changeFavoritesBarVisibility = async (visibility: FavoritesBarVisibility) => {
+    setFavoritesBarVisibility(visibility);
+    await window.browserAPI.layout.setFavoritesBarVisibility(visibility);
+  };
 
+  const floatingUi = (
+    <>
       {browserMenu ? (
         <div
           ref={menuRef}
@@ -238,6 +242,10 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
             shortcut="⌘Y"
             onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openHistory())}
           />
+          <BrowserMenuItem
+            label="Downloads"
+            onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openDownloads())}
+          />
           {activeTabCanBeFavorited ? (
             <BrowserMenuItem
               label="Add Favorite..."
@@ -251,6 +259,25 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
           <BrowserMenuItem
             label="Settings"
             onClick={() => runBrowserMenuAction(() => window.browserAPI.browser.openSettings())}
+          />
+          <div className="my-1 h-px bg-border" />
+          <BrowserMenuItem
+            checked={favoritesBarVisibility === "always"}
+            label="Show Favorites Bar"
+            onClick={() =>
+              runBrowserMenuAction(() =>
+                changeFavoritesBarVisibility(
+                  favoritesBarVisibility === "always" ? "never" : "always"
+                )
+              )
+            }
+          />
+          <BrowserMenuItem
+            disabled={!hasRestorableSession}
+            label="Restore Previous Session"
+            onClick={() =>
+              runBrowserMenuAction(() => window.browserAPI.browser.restoreLastSession())
+            }
           />
           <div className="my-1 h-px bg-border" />
           <BrowserMenuItem
@@ -418,6 +445,21 @@ export function BrowserMenuButton({ className = "" }: BrowserMenuButtonProps) {
           </form>
         </div>
       ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <button
+        aria-label="Open browser menu"
+        className={`app-region-no-drag relative inline-flex h-10 w-10 cursor-pointer flex-col items-center justify-center gap-[4px] rounded-[14px] border border-border bg-bg-surface text-text-primary transition-colors duration-150 hover:bg-accent-subtle active:bg-accent-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tab-border-active ${className}`}
+        onClick={handleOpenMenu}
+        onMouseLeave={(event) => event.currentTarget.blur()}
+        type="button"
+      >
+        <Menu aria-hidden size={20} strokeWidth={2.35} />
+      </button>
+      {createPortal(floatingUi, document.body)}
     </>
   );
 }

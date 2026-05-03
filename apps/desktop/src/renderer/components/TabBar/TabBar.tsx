@@ -2,7 +2,6 @@ import { useRef, type CSSProperties, type DragEvent, type MouseEvent } from "rea
 import { Plus } from "lucide-react";
 import { useTabStore } from "../../store/tabStore";
 import { useUIStore, type TabStripPlacement } from "../../store/uiStore";
-import { BrowserMenuButton } from "../BrowserMenu/BrowserMenuButton";
 import { Tab } from "./Tab";
 
 type AppRegionStyle = CSSProperties & { WebkitAppRegion?: "drag" | "no-drag" };
@@ -14,16 +13,14 @@ const TAB_DRAG_MIME = "application/x-seans-browser-tab-token";
 
 interface TabBarProps {
   orientation?: "horizontal" | "vertical";
-  showBrowserMenu?: boolean;
 }
 
-export function TabBar({ orientation, showBrowserMenu }: TabBarProps = {}) {
+export function TabBar({ orientation }: TabBarProps = {}) {
   const { activeTabId, setActiveTabId, removeTab, tabs } = useTabStore();
   const tabStripPlacement = useUIStore((state) => state.tabStripPlacement);
   const activeDragTokenRef = useRef<string | null>(null);
   const tabStripDirection =
     orientation ?? (tabStripPlacement === "top" ? "horizontal" : "vertical");
-  const shouldShowBrowserMenu = showBrowserMenu ?? tabStripDirection === "horizontal";
 
   const handleNewTab = async () => {
     const id = await window.browserAPI.tab.create();
@@ -149,7 +146,6 @@ export function TabBar({ orientation, showBrowserMenu }: TabBarProps = {}) {
         <Plus aria-hidden size={22} strokeWidth={2.5} />
       </button>
       {tabStripDirection === "horizontal" ? <div className="min-w-4 flex-1 self-stretch" /> : null}
-      {shouldShowBrowserMenu ? <BrowserMenuButton /> : null}
     </div>
   );
 }

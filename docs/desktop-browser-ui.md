@@ -30,6 +30,8 @@ The main surface renders:
 - `<TabBar />`
 - `<Toolbar />`
 - `<AddressBar />`
+- `<BrowserMenuButton />`
+- `<FavoritesBar />` when desktop favorites-bar visibility is enabled and top-level items exist
 
 It also measures the `<header>` height with `ResizeObserver` and sends that value to main through `window.browserAPI.layout.setChromeHeight(...)`. Main then computes page insets and positions each page view below/next to the chrome.
 
@@ -37,9 +39,10 @@ It also measures the `<header>` height with `ResizeObserver` and sends that valu
 
 - `components/TabBar/TabBar.tsx`: renders the horizontal or vertical tab strip, new-tab button, tab drag/drop, and tab create/activate/close IPC calls.
 - `components/TabBar/Tab.tsx`: renders one horizontal or vertical tab with favicon/title, close control, Lucide sleep/crash badges, and sleeping-tab preview.
-- `components/BrowserMenu/BrowserMenuButton.tsx`: renders the custom hamburger menu, navigation actions, favorites/history/settings entries, close actions, and tab-placement controls.
+- `components/BrowserMenu/BrowserMenuButton.tsx`: renders the custom hamburger menu to the right of the address bar, with navigation actions, favorites/history/settings entries, close actions, and tab-placement controls.
+- `components/FavoritesBar/FavoritesBar.tsx`: renders top-level favorites and folders as a horizontal bar below the main toolbar.
 - `components/Toolbar/Toolbar.tsx`: renders Back, Forward, and Reload/Stop controls for the active tab.
-- `components/AddressBar/AddressBar.tsx`: renders URL/search input, lock/unlock connection indicator, focus behavior, and navigation submit.
+- `components/AddressBar/AddressBar.tsx`: renders URL/search input, page-info popover from the connection chip, downloads button, favorite star, focus behavior, and navigation submit.
 - `components/SleepOverlay/SleepOverlay.tsx`: renders a snapshot overlay for sleeping tabs.
 
 Most component styling uses Tailwind utility classes in the TSX files. `styles.css` keeps global renderer rules such as transparency, base font setup, and Electron drag/no-drag regions.
@@ -48,11 +51,16 @@ Most component styling uses Tailwind utility classes in the TSX files. `styles.c
 
 Desktop chrome uses `lucide-react` for toolbar, tab, hamburger, status, and address-bar icons. The Expo app uses `lucide-react-native` with `react-native-svg`, keeping the icon family consistent while still using each platform's native rendering path.
 
-The address bar shows connection state as an icon chip rather than a text badge: HTTPS pages use a locked icon on a green background, and non-HTTPS/internal/unrecognized pages use an unlocked icon on a light-red background.
+The address bar shows connection state as an icon chip rather than a text badge: HTTPS pages use a locked icon on a green background, and non-HTTPS/internal/unrecognized pages use an unlocked icon on a light-red background. Clicking that chip opens a lightweight page-info popover with host and URL details.
+
+The right side of the address bar is now a page-actions zone. The first-pass actions are:
+
+- downloads button, which opens `seans-browser://downloads/`
+- favorite star, which toggles the active page in the shared favorites repository
 
 ## Browser Menu
 
-The top-right hamburger menu is a custom React menu rendered by `components/BrowserMenu/BrowserMenuButton.tsx`, not a native Electron `Menu`. This gives the app control over styling and keeps it visually aligned with the rest of the browser chrome.
+The hamburger menu to the right of the address bar is a custom React menu rendered by `components/BrowserMenu/BrowserMenuButton.tsx`, not a native Electron `Menu`. This gives the app control over styling and keeps it visually aligned with the rest of the browser chrome.
 
 Because page contents are separate sibling `WebContentsView`s, a normal React popover cannot extend over the page area unless the chrome view itself is tall enough. When the hamburger menu opens, `BrowserMenuButton` calls `window.browserAPI.layout.setChromeOverlayHeight(...)` before setting menu state. After render, it measures the menu with `ResizeObserver` and resizes the transparent top chrome `WebContentsView` just enough for the menu plus padding. When the menu closes, the overlay height is reset to `0`.
 
@@ -62,13 +70,20 @@ The tab right-click menu is still native Electron UI through `tab.showContextMen
 
 Manual tab sleep now lives in the tab right-click menu instead of the toolbar. Right-clicking a tab shows `Sleep Tab`; inactive tabs sleep directly, while the active tab first switches to another tab before sleeping. The item is disabled when there is nowhere safe to switch, or when the tab is already sleeping/crashed.
 
-The hamburger menu also opens local browser pages for History, Favorites, and Settings. Settings is currently the home for appearance controls, including `System`, `Light`, and `Dark` theme preference.
+The hamburger menu also opens local browser pages for Downloads, History, Favorites, and Settings. It also exposes:
+
+- `Show Favorites Bar`
+- `Restore Previous Session` when a session was preserved for relaunch
+
+Settings is currently the home for appearance controls and desktop favorites-bar visibility.
 
 ## Theme
 
 Chrome colors come from the shared `@seans-browser/browser-theme` package. The renderer applies either `theme-light` or `theme-dark` to the app root, which activates semantic Tailwind utilities such as `bg-bg-chrome`, `text-text-primary`, `border-border`, and `bg-accent`.
 
 Desktop stores the user's preference as `appearance.themePreference` with values `system`, `light`, or `dark`. `system` resolves through Electron `nativeTheme`, and main broadcasts `theme:changed` to all chrome surfaces when the OS theme or saved preference changes. Mobile currently follows React Native `useColorScheme()` so the Expo shell tracks system appearance by default.
+
+Desktop also stores `desktop.favoritesBarVisibility` through the shared settings repository. The renderer subscribes to `layout:favoritesBarVisibilityChanged` so menu and settings changes apply to the live chrome immediately.
 
 ## Toggleable Tabs
 
@@ -78,12 +93,14 @@ Placement changes flow through `window.browserAPI.layout.setTabStripPlacement(..
 
 `TabBar` accepts `orientation="horizontal" | "vertical"`. The same tab activation, close, context-menu, and drag/drop paths work in both orientations. Dropping onto empty tab-strip space appends the dragged tab, which keeps cross-window tab dragging useful for vertical rails.
 
+Pinned tabs are now part of serialized tab state and are toggled from the native tab context menu. The first pass keeps the UI simple: pinned tabs get a pin glyph in the tab surface and remain exempt from automatic sleep.
+
 ## State
 
 Renderer state is intentionally small:
 
 - `store/tabStore.ts`: Zustand + Immer store containing serialized tab records and the active tab id.
-- `store/uiStore.ts`: UI-only state, currently the address-bar focus nonce and tab strip placement.
+- `store/uiStore.ts`: UI-only state for address-bar focus, tab-strip placement, and favorites-bar visibility.
 
 The renderer does not own canonical tab state. Main owns the real tab records and Electron objects. The renderer receives serialized snapshots of tab state over IPC.
 
@@ -92,12 +109,16 @@ The renderer does not own canonical tab state. Main owns the real tab records an
 `apps/desktop/src/main/preload.ts` exposes `window.browserAPI` with safe methods:
 
 - `tab.create`, `tab.close`, `tab.activate`, `tab.list`, `tab.sleep`
+- `tab.setPinned`
 - `nav.back`, `nav.forward`, `nav.reload`, `nav.loadURL`
 - `history.search`
-- `browser.addFavorite`, `browser.createFavoriteFolder`, `browser.listFavoriteFolders`
-- `browser.openFavorites`, `browser.openHistory`, `browser.openSettings`
+- `browser.addFavorite`, `browser.toggleFavorite`, `browser.getFavoriteStatus`
+- `browser.createFavoriteFolder`, `browser.listFavoriteFolders`, `browser.listFavoritesBarItems`
+- `browser.openDownloads`, `browser.openFavorites`, `browser.openHistory`, `browser.openSettings`
+- `browser.hasRestorableSession`, `browser.restoreLastSession`
 - `layout.setChromeHeight`, `layout.setChromeOverlayHeight`
 - `layout.getTabStripPlacement`, `layout.setTabStripPlacement`
+- `layout.getFavoritesBarVisibility`, `layout.setFavoritesBarVisibility`
 - `theme.getState`, `theme.setPreference`
 - event subscription helpers: `on` and `off`
 
@@ -114,11 +135,24 @@ The renderer does not own canonical tab state. Main owns the real tab records an
 
 `App.tsx` separately subscribes to `layout:tabStripPlacementChanged` so both the main chrome surface and the side-tabs surface stay in sync.
 
+It also subscribes to `layout:favoritesBarVisibilityChanged` so settings or menu changes can show/hide the favorites bar without restarting.
+
 It also subscribes to `theme:changed` so theme changes from the Settings page or OS appearance updates apply without restarting the browser.
+
+`FavoritesBar` subscribes to `favorites:changed` so address-bar star toggles and browser-menu favorite changes immediately refresh the visible favorites bar.
 
 ## Keyboard And Focus
 
 Keyboard shortcuts are registered in the main process against the chrome views' `WebContents`. Main handles tab/navigation shortcuts directly and sends `ui:focus-address-bar` to React for address-bar focus. The renderer responds by incrementing `addressBarFocusNonce`, and `AddressBar` focuses/selects its input when that nonce changes.
+
+## Session Restore
+
+Open tab and window snapshots are persisted through the shared open-tabs repository. The current restore rule is:
+
+- full app quit preserves the current session for next launch
+- intentionally closing a window does not preserve that window for later restoration
+
+On relaunch after a preserved quit, the app restores those saved windows and tabs instead of creating a fresh default tab.
 
 ## Current Important Constraint
 

@@ -87,7 +87,11 @@ export class WindowManager {
     if (!Number.isFinite(height)) {
       return;
     }
-    this.chromeHeight = Math.max(64, Math.ceil(height));
+    const nextChromeHeight = Math.max(64, Math.ceil(height));
+    if (nextChromeHeight === this.chromeHeight) {
+      return;
+    }
+    this.chromeHeight = nextChromeHeight;
     this.reflowViews();
   }
 
@@ -95,8 +99,12 @@ export class WindowManager {
     if (!Number.isFinite(height)) {
       return;
     }
-    this.chromeOverlayHeight = Math.max(0, Math.ceil(height));
-    this.bringChromeToFront();
+    const nextOverlayHeight = Math.max(0, Math.ceil(height));
+    if (nextOverlayHeight === this.chromeOverlayHeight) {
+      return;
+    }
+    this.chromeOverlayHeight = nextOverlayHeight;
+    this.positionChromeView();
   }
 
   setTabStripPlacement(placement: TabStripPlacement): void {

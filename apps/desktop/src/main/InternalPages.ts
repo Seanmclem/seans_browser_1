@@ -4,10 +4,13 @@ import type {
   FavoriteRecord,
   ThemePreference
 } from "@seans-browser/browser-core";
+import type { FavoritesBarVisibility } from "./BrowserDataManager";
 import type { BrowserDataManager } from "./BrowserDataManager";
+import type { DownloadEntry, DownloadManager } from "./DownloadManager";
 import type { HistoryEntry } from "./HistoryManager";
 
 export const INTERNAL_PAGE_SCHEME = "seans-browser";
+export const DOWNLOADS_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://downloads/`;
 export const FAVORITES_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://favorites/`;
 export const HISTORY_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://history/`;
 export const SETTINGS_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://settings/`;
@@ -15,6 +18,7 @@ export const SETTINGS_PAGE_URL = `${INTERNAL_PAGE_SCHEME}://settings/`;
 const HISTORY_RESULT_LIMIT = 200;
 
 interface InternalPageOptions {
+  onFavoritesBarVisibilityChanged?: (visibility: FavoritesBarVisibility) => void;
   onThemePreferenceChanged?: () => void;
 }
 
@@ -25,10 +29,15 @@ export function isInternalPageUrl(url: string): boolean {
 export function registerInternalPages(
   session: Session,
   dataManager: BrowserDataManager,
+  downloadManager: DownloadManager,
   options: InternalPageOptions = {}
 ): void {
   session.protocol.handle(INTERNAL_PAGE_SCHEME, async (request) => {
     const url = new URL(request.url);
+
+    if (url.hostname === "downloads") {
+      return htmlResponse(renderDownloadsPage(downloadManager.listDownloads()));
+    }
 
     if (url.hostname === "history") {
       const query = url.searchParams.get("q") ?? "";
@@ -51,14 +60,25 @@ export function registerInternalPages(
 
     if (url.hostname === "settings") {
       const requestedTheme = url.searchParams.get("theme");
+      const requestedFavoritesBarVisibility = url.searchParams.get("favoritesBar");
       const currentPreference = await dataManager.getThemePreference();
       if (isThemePreference(requestedTheme) && requestedTheme !== currentPreference) {
         await dataManager.setThemePreference(requestedTheme);
         options.onThemePreferenceChanged?.();
       }
 
+      const currentFavoritesBarVisibility = await dataManager.getFavoritesBarVisibility();
+      if (
+        isFavoritesBarVisibility(requestedFavoritesBarVisibility) &&
+        requestedFavoritesBarVisibility !== currentFavoritesBarVisibility
+      ) {
+        await dataManager.setFavoritesBarVisibility(requestedFavoritesBarVisibility);
+        options.onFavoritesBarVisibilityChanged?.(requestedFavoritesBarVisibility);
+      }
+
       const themePreference = await dataManager.getThemePreference();
-      return htmlResponse(renderSettingsPage(themePreference));
+      const favoritesBarVisibility = await dataManager.getFavoritesBarVisibility();
+      return htmlResponse(renderSettingsPage(themePreference, favoritesBarVisibility));
     }
 
     return htmlResponse(renderNotFoundPage(url), 404);
@@ -210,7 +230,35 @@ function renderFavorite(favorite: FavoriteRecord): string {
   </a>`;
 }
 
-function renderSettingsPage(themePreference: ThemePreference): string {
+function renderDownloadsPage(entries: DownloadEntry[]): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Downloads</title>
+    ${sharedPageStyles()}
+  </head>
+  <body>
+    <main>
+      <h1>Downloads</h1>
+      <p class="subtitle">Recent downloads from this app session. This first pass is intentionally simple and focused on visibility and status.</p>
+      <section class="history-list" aria-label="Downloads">
+        ${
+          entries.length > 0
+            ? entries.map(renderDownloadEntry).join("")
+            : `<div class="empty">No downloads yet. Files you download from pages in this browser will show up here.</div>`
+        }
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
+function renderSettingsPage(
+  themePreference: ThemePreference,
+  favoritesBarVisibility: FavoritesBarVisibility
+): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -235,6 +283,23 @@ function renderSettingsPage(themePreference: ThemePreference): string {
           <button type="submit">Save Theme</button>
         </form>
       </section>
+      <section class="settings-card" aria-labelledby="favorites-bar-heading">
+        <div>
+          <h2 id="favorites-bar-heading">Favorites Bar</h2>
+          <p class="settings-description">Control whether the top-level favorites bar is visible in desktop chrome.</p>
+        </div>
+        <form class="settings-form" action="${SETTINGS_PAGE_URL}" method="get">
+          ${renderFavoritesBarOption("always", favoritesBarVisibility, "Always", "Keep the favorites bar visible below the main toolbar.")}
+          ${renderFavoritesBarOption("never", favoritesBarVisibility, "Never", "Hide the favorites bar and rely on menu/page access instead.")}
+          <button type="submit">Save Favorites Bar</button>
+        </form>
+      </section>
+      <section class="settings-card" aria-labelledby="session-restore-heading">
+        <div>
+          <h2 id="session-restore-heading">Session Restore</h2>
+          <p class="settings-description">The browser restores open windows and tabs after a full app quit. Intentionally closing a window does not mark it for restoration later.</p>
+        </div>
+      </section>
     </main>
   </body>
 </html>`;
@@ -253,6 +318,35 @@ function renderThemeOption(
       <small>${description}</small>
     </span>
   </label>`;
+}
+
+function renderFavoritesBarOption(
+  value: FavoritesBarVisibility,
+  selected: FavoritesBarVisibility,
+  label: string,
+  description: string
+): string {
+  return `<label class="setting-option">
+    <input type="radio" name="favoritesBar" value="${value}" ${selected === value ? "checked" : ""} />
+    <span>
+      <strong>${label}</strong>
+      <small>${description}</small>
+    </span>
+  </label>`;
+}
+
+function renderDownloadEntry(entry: DownloadEntry): string {
+  return `<article class="history-item">
+    <span class="history-title">${escapeHtml(entry.filename)}</span>
+    <span class="history-url">${escapeHtml(entry.url)}</span>
+    <span class="history-meta">
+      <span class="download-status">${escapeHtml(formatDownloadState(entry.state))}</span>
+      <span class="history-time">${escapeHtml(formatVisitedAt(new Date(entry.startedAt)))}</span>
+      <span>${escapeHtml(formatBytes(entry.receivedBytes))} / ${escapeHtml(
+        entry.totalBytes > 0 ? formatBytes(entry.totalBytes) : "Unknown size"
+      )}</span>
+    </span>
+  </article>`;
 }
 
 function renderNotFoundPage(url: URL): string {
@@ -518,4 +612,34 @@ function escapeAttribute(value: string): string {
 
 function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
+}
+
+function isFavoritesBarVisibility(value: unknown): value is FavoritesBarVisibility {
+  return value === "always" || value === "never";
+}
+
+function formatDownloadState(state: DownloadEntry["state"]): string {
+  return state === "in-progress"
+    ? "Downloading"
+    : state === "completed"
+      ? "Completed"
+      : state === "cancelled"
+        ? "Cancelled"
+        : "Interrupted";
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }

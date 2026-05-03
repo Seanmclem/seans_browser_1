@@ -8,7 +8,11 @@ import { SqliteSettingsRepository } from "./data/SqliteSettingsRepository";
 import type { TabStripPlacement } from "./types";
 
 const TAB_STRIP_PLACEMENT_SETTING_KEY = "desktop.tabStripPlacement";
+const FAVORITES_BAR_VISIBILITY_SETTING_KEY = "desktop.favoritesBarVisibility";
 const THEME_PREFERENCE_SETTING_KEY = "appearance.themePreference";
+const RESTORE_SESSION_ON_NEXT_LAUNCH_META_KEY = "restoreSessionOnNextLaunch";
+
+export type FavoritesBarVisibility = "always" | "never";
 
 export class BrowserDataManager {
   readonly database = new LocalBrowserDatabase();
@@ -29,6 +33,22 @@ export class BrowserDataManager {
     );
   }
 
+  async getFavoritesBarVisibility(): Promise<FavoritesBarVisibility> {
+    const setting = await this.settings.getSetting(FAVORITES_BAR_VISIBILITY_SETTING_KEY, "desktop");
+    return isFavoritesBarVisibility(setting?.value) ? setting.value : "always";
+  }
+
+  async setFavoritesBarVisibility(visibility: FavoritesBarVisibility): Promise<void> {
+    await this.settings.upsertSetting(
+      await this.settingRecord(
+        FAVORITES_BAR_VISIBILITY_SETTING_KEY,
+        visibility,
+        "device",
+        "desktop"
+      )
+    );
+  }
+
   async getThemePreference(): Promise<ThemePreference> {
     const setting = await this.settings.getSetting(THEME_PREFERENCE_SETTING_KEY, "all");
     return isThemePreference(setting?.value) ? setting.value : "system";
@@ -37,6 +57,17 @@ export class BrowserDataManager {
   async setThemePreference(preference: ThemePreference): Promise<void> {
     await this.settings.upsertSetting(
       await this.settingRecord(THEME_PREFERENCE_SETTING_KEY, preference, "profile", "all")
+    );
+  }
+
+  shouldRestoreSessionOnNextLaunch(): boolean {
+    return this.database.getMeta(RESTORE_SESSION_ON_NEXT_LAUNCH_META_KEY) === "true";
+  }
+
+  setRestoreSessionOnNextLaunch(shouldRestore: boolean): void {
+    this.database.setMeta(
+      RESTORE_SESSION_ON_NEXT_LAUNCH_META_KEY,
+      shouldRestore ? "true" : "false"
     );
   }
 
@@ -70,4 +101,8 @@ function isTabStripPlacement(value: unknown): value is TabStripPlacement {
 
 function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
+}
+
+function isFavoritesBarVisibility(value: unknown): value is FavoritesBarVisibility {
+  return value === "always" || value === "never";
 }

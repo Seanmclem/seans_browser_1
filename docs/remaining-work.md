@@ -4,16 +4,14 @@ This is the current high-level backlog after the desktop local-first persistence
 
 ## Session And Tabs
 
-- Implement open-tabs restore from persisted snapshots.
-- Decide the restore rule first: restore after full app quit, but do not resurrect a window the user intentionally closed.
 - Add UI for restoring tabs from other devices once remote sync exists.
 - Persist and restore more tab state, including scroll position and sleeping/crashed state behavior.
+- Add richer session-restore controls beyond the current first pass.
 
 ## Favorites
 
 - Add edit/delete actions for favorites.
 - Add favorite folders and reordering UI.
-- Add a bookmark/star affordance near the address bar.
 - Add duplicate handling for bookmarking the same normalized URL.
 
 ## Settings
@@ -24,6 +22,7 @@ This is the current high-level backlog after the desktop local-first persistence
 - Wire media/autoplay/fullscreen-ad behavior settings.
 - Wire sleep threshold settings.
 - Add settings search/grouping once the page has more than a few controls.
+- Add more favorites-bar visibility modes if needed, such as new-tab-only.
 
 ## Mobile Persistence
 
@@ -41,6 +40,7 @@ This is the current high-level backlog after the desktop local-first persistence
 ## Desktop Polish
 
 - Replace simple generated internal pages with richer React-rendered local pages if needed.
+- Make downloads persistent if we want them to survive app relaunch and participate in shared data flows.
 - Add history/favorites search refinements and empty/error states.
 - Add packaging-time checks for native module rebuilds.
 - Add automated smoke tests for the internal `seans-browser://` pages.

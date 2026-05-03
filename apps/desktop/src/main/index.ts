@@ -1,9 +1,14 @@
 import { app, BrowserWindow, nativeTheme, protocol, WebContents } from "electron";
-import type { ResolvedTheme, ThemePreference, ThemeState } from "@seans-browser/browser-core";
+import type {
+  OpenTabsWindowRecord,
+  ResolvedTheme,
+  ThemePreference,
+  ThemeState
+} from "@seans-browser/browser-core";
 import { BrowserDataManager } from "./BrowserDataManager";
 import { BrowserWindowController } from "./BrowserWindowController";
 import { DownloadManager } from "./DownloadManager";
-import { INTERNAL_PAGE_SCHEME, registerInternalPages } from "./InternalPages";
+import { DOWNLOADS_PAGE_URL, INTERNAL_PAGE_SCHEME, registerInternalPages } from "./InternalPages";
 import { registerIPCHandlers } from "./IPCHandler";
 import { SessionManager } from "./SessionManager";
 
@@ -23,10 +28,14 @@ const WINDOW_CASCADE_OFFSET = 32;
 const windowControllers = new Map<number, BrowserWindowController>();
 const windowControllersByWindowId = new Map<number, BrowserWindowController>();
 let dataManager: BrowserDataManager;
+let downloadManager: DownloadManager;
 let sessionManager: SessionManager;
+let preserveSessionOnClose = false;
 
 interface CreateMainWindowOptions {
   createDefaultTab?: boolean;
+  existingOpenTabsWindowRecord?: OpenTabsWindowRecord;
+  initialTabStripPlacement?: "top" | "left" | "right";
 }
 
 async function createMainWindow(
@@ -34,8 +43,10 @@ async function createMainWindow(
 ): Promise<BrowserWindowController> {
   const controller = new BrowserWindowController({
     dataManager,
+    existingOpenTabsWindowRecord: options.existingOpenTabsWindowRecord,
     historyManager: dataManager.history,
-    initialTabStripPlacement: await dataManager.getTabStripPlacement(),
+    initialTabStripPlacement:
+      options.initialTabStripPlacement ?? (await dataManager.getTabStripPlacement()),
     sessionManager,
     onClosed: (closedController) => {
       for (const contents of closedController.chromeWebContentses) {
@@ -43,7 +54,8 @@ async function createMainWindow(
       }
       windowControllersByWindowId.delete(closedController.window.id);
     },
-    onMoveTabToNewWindow: moveTabToNewWindow
+    onMoveTabToNewWindow: moveTabToNewWindow,
+    preserveSessionOnClose: () => preserveSessionOnClose
   });
   for (const contents of controller.chromeWebContentses) {
     windowControllers.set(contents.id, controller);
@@ -129,17 +141,49 @@ function broadcastThemeState(themeState: ThemeState): void {
 app.whenReady().then(() => {
   sessionManager = new SessionManager();
   dataManager = new BrowserDataManager();
-  registerInternalPages(sessionManager.getSession(), dataManager, {
+  downloadManager = new DownloadManager(sessionManager.getSession(), () => {
+    for (const controller of getUniqueControllers()) {
+      controller.tabManager.reloadDownloadsPages();
+      controller.notifyDownloadsChanged();
+    }
+  });
+  registerInternalPages(sessionManager.getSession(), dataManager, downloadManager, {
+    onFavoritesBarVisibilityChanged: (visibility) => {
+      for (const controller of getUniqueControllers()) {
+        controller.notifyFavoritesBarVisibilityChanged(visibility);
+      }
+    },
     onThemePreferenceChanged: () => {
       void getThemeState().then(broadcastThemeState);
     }
   });
-  new DownloadManager(sessionManager.getSession());
   registerIPCHandlers(getControllerForSender, {
+    getDownloadEntries: () => downloadManager.listDownloads(),
+    getFavoritesBarVisibility: () => dataManager.getFavoritesBarVisibility(),
+    hasRestorableSession: hasRestorableSession,
+    openDownloadsPage: () => {
+      for (const controller of getUniqueControllers()) {
+        if (controller.window.isFocused()) {
+          controller.tabManager.createTab(DOWNLOADS_PAGE_URL);
+          return;
+        }
+      }
+
+      const [controller] = getUniqueControllers();
+      controller?.tabManager.createTab(DOWNLOADS_PAGE_URL);
+    },
+    restoreLastSession: restoreLastSession,
+    setFavoritesBarVisibility: async (visibility) => {
+      await dataManager.setFavoritesBarVisibility(visibility);
+      for (const controller of getUniqueControllers()) {
+        controller.notifyFavoritesBarVisibilityChanged(visibility);
+      }
+      return visibility;
+    },
     getThemeState,
     setThemePreference
   });
-  void createMainWindow();
+  void restoreSessionOnLaunch();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -178,3 +222,67 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
+app.on("before-quit", () => {
+  preserveSessionOnClose = BrowserWindow.getAllWindows().length > 0;
+  dataManager?.setRestoreSessionOnNextLaunch(preserveSessionOnClose);
+});
+
+async function restoreSessionOnLaunch(): Promise<void> {
+  if (await hasRestorableSession()) {
+    const restored = await restoreLastSession();
+    if (restored > 0) {
+      dataManager.setRestoreSessionOnNextLaunch(false);
+      preserveSessionOnClose = false;
+      return;
+    }
+  }
+
+  await createMainWindow();
+  dataManager.setRestoreSessionOnNextLaunch(false);
+  preserveSessionOnClose = false;
+}
+
+async function hasRestorableSession(): Promise<boolean> {
+  if (!dataManager.shouldRestoreSessionOnNextLaunch()) {
+    return false;
+  }
+
+  const windows = await dataManager.openTabs.listOpenTabsWindows();
+  for (const windowRecord of windows) {
+    const tabs = await dataManager.openTabs.listOpenTabs(windowRecord.sync.id);
+    if (tabs.length > 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function restoreLastSession(): Promise<number> {
+  const windows = await dataManager.openTabs.listOpenTabsWindows();
+  if (windows.length === 0) {
+    return 0;
+  }
+
+  let restoredWindows = 0;
+
+  for (const windowRecord of windows) {
+    const tabs = await dataManager.openTabs.listOpenTabs(windowRecord.sync.id);
+    if (tabs.length === 0) {
+      continue;
+    }
+
+    const controller = await createMainWindow({
+      createDefaultTab: false,
+      existingOpenTabsWindowRecord: windowRecord,
+      initialTabStripPlacement: windowRecord.placement
+    });
+    const restored = await controller.restoreOpenTabsWindow(tabs, windowRecord.activeTabId);
+    if (restored) {
+      restoredWindows += 1;
+    }
+  }
+
+  return restoredWindows;
+}

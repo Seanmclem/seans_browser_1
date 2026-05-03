@@ -84,6 +84,20 @@ export class SqliteFavoritesRepository implements FavoritesRepository {
     return rows.map(toFavoriteRecord);
   }
 
+  async getFavoriteByNormalizedUrl(normalizedUrl: string): Promise<FavoriteRecord | null> {
+    const row = this.database.db
+      .prepare(
+        `select *
+         from favorites
+         where deleted_at is null
+           and normalized_url = ?
+         order by updated_at desc
+         limit 1`
+      )
+      .get(normalizedUrl) as FavoriteRow | undefined;
+    return row ? toFavoriteRecord(row) : null;
+  }
+
   async tombstoneFavorite(id: string, deletedAt: string): Promise<void> {
     const write = this.database.db.transaction(() => {
       this.database.db

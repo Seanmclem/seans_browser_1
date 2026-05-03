@@ -1,10 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AddressBar } from "./components/AddressBar/AddressBar";
 import { BrowserMenuButton } from "./components/BrowserMenu/BrowserMenuButton";
+import { FavoritesBar } from "./components/FavoritesBar/FavoritesBar";
 import { TabBar } from "./components/TabBar/TabBar";
 import { Toolbar } from "./components/Toolbar/Toolbar";
 import { useTabManager } from "./hooks/useTabManager";
-import { useUIStore, type TabStripPlacement } from "./store/uiStore";
+import {
+  useUIStore,
+  type FavoritesBarVisibility,
+  type TabStripPlacement
+} from "./store/uiStore";
 
 type ChromeSurface = "main" | "side-tabs";
 
@@ -15,7 +20,9 @@ export default function App() {
   const surface = getChromeSurface();
   const isMainSurface = surface === "main";
   const tabStripPlacement = useUIStore((state) => state.tabStripPlacement);
+  const favoritesBarVisibility = useUIStore((state) => state.favoritesBarVisibility);
   useTabStripPlacementSync(isMainSurface);
+  useFavoritesBarVisibilitySync(isMainSurface);
   const chromeRef = useRef<HTMLElement>(null);
   const resolvedTheme = useResolvedTheme();
   const themeClassName = resolvedTheme === "light" ? "theme-light" : "theme-dark";
@@ -50,7 +57,7 @@ export default function App() {
           tabStripPlacement === "right" ? "border-l" : "border-r"
         } border-border`}
       >
-        <TabBar orientation="vertical" showBrowserMenu={false} />
+        <TabBar orientation="vertical" />
       </div>
     );
   }
@@ -61,15 +68,13 @@ export default function App() {
         ref={chromeRef}
         className="app-region-drag fixed inset-x-0 top-0 z-[100] border-b border-border bg-bg-chrome"
       >
-        {tabStripPlacement === "top" ? (
-          <TabBar orientation="horizontal" showBrowserMenu />
-        ) : (
-          <SideTabTopBar placement={tabStripPlacement} />
-        )}
-        <div className="grid grid-cols-[auto_1fr] items-center gap-[14px] px-[18px] pb-3">
+        {tabStripPlacement === "top" ? <TabBar orientation="horizontal" /> : <SideTabTopBar />}
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-[14px] px-[18px] pb-3">
           <Toolbar />
           <AddressBar />
+          <BrowserMenuButton />
         </div>
+        {favoritesBarVisibility === "always" ? <FavoritesBar /> : null}
       </header>
     </div>
   );
@@ -105,16 +110,8 @@ function useResolvedTheme(): "light" | "dark" {
   return resolvedTheme;
 }
 
-function SideTabTopBar({ placement }: { placement: Exclude<TabStripPlacement, "top"> }) {
-  return (
-    <div className="relative flex items-center gap-3 py-3 pb-[6px] pl-[84px] pr-[18px]">
-      <span className="rounded-full border border-border bg-bg-surface px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-text-muted">
-        Tabs on {placement}
-      </span>
-      <div className="min-w-4 flex-1 self-stretch" />
-      <BrowserMenuButton />
-    </div>
-  );
+function SideTabTopBar() {
+  return <div className="min-h-[58px] py-3 pb-[6px] pl-[84px] pr-[18px]" />;
 }
 
 function useTabStripPlacementSync(isMainSurface: boolean): void {
@@ -151,6 +148,31 @@ function useTabStripPlacementSync(isMainSurface: boolean): void {
   }, [isMainSurface, setTabStripPlacement]);
 }
 
+function useFavoritesBarVisibilitySync(isMainSurface: boolean): void {
+  const setFavoritesBarVisibility = useUIStore((state) => state.setFavoritesBarVisibility);
+
+  useEffect(() => {
+    const applyVisibility = (visibility: unknown) => {
+      if (!isFavoritesBarVisibility(visibility)) {
+        return;
+      }
+
+      setFavoritesBarVisibility(visibility);
+    };
+
+    void window.browserAPI.layout.getFavoritesBarVisibility().then((visibility) => {
+      if (isMainSurface) {
+        applyVisibility(visibility);
+      }
+    });
+
+    window.browserAPI.on("layout:favoritesBarVisibilityChanged", applyVisibility);
+    return () => {
+      window.browserAPI.off("layout:favoritesBarVisibilityChanged", applyVisibility);
+    };
+  }, [isMainSurface, setFavoritesBarVisibility]);
+}
+
 function getChromeSurface(): ChromeSurface {
   return new URLSearchParams(window.location.search).get("surface") === "side-tabs"
     ? "side-tabs"
@@ -159,4 +181,8 @@ function getChromeSurface(): ChromeSurface {
 
 function isTabStripPlacement(value: unknown): value is TabStripPlacement {
   return value === "top" || value === "left" || value === "right";
+}
+
+function isFavoritesBarVisibility(value: unknown): value is FavoritesBarVisibility {
+  return value === "always" || value === "never";
 }

@@ -1,6 +1,6 @@
 import type { DragEvent, MouseEvent } from "react";
 import type { SerializedTab } from "@seans-browser/browser-core";
-import { Bed, Moon, OctagonAlert, X } from "lucide-react";
+import { Bed, Moon, OctagonAlert, Pin, X } from "lucide-react";
 import { SleepOverlay } from "../SleepOverlay/SleepOverlay";
 
 interface TabProps {
@@ -81,6 +81,11 @@ export function Tab({
       </div>
 
       <span className="overflow-hidden text-ellipsis whitespace-nowrap text-left text-[13px]">
+        {tab.pinned ? (
+          <span className="mr-1.5 inline-flex align-middle opacity-90">
+            <Pin aria-hidden size={11} strokeWidth={2.5} />
+          </span>
+        ) : null}
         {tab.title || tab.url}
       </span>
 

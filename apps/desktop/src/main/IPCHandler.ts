@@ -1,6 +1,8 @@
 import { IpcMainInvokeEvent, Menu, WebContents, ipcMain } from "electron";
-import type { ThemePreference, ThemeState } from "@seans-browser/browser-core";
+import { normalizeURL, type ThemePreference, type ThemeState } from "@seans-browser/browser-core";
 import { BrowserWindowController } from "./BrowserWindowController";
+import type { FavoritesBarVisibility } from "./BrowserDataManager";
+import type { DownloadEntry } from "./DownloadManager";
 import type { SqliteFavoritesRepository } from "./data/SqliteFavoritesRepository";
 import {
   FAVORITES_PAGE_URL,
@@ -12,6 +14,12 @@ import type { TabDropPlacement, TabStripPlacement } from "./types";
 
 type ControllerResolver = (sender: WebContents) => BrowserWindowController | undefined;
 interface IPCHandlerOptions {
+  getDownloadEntries: () => DownloadEntry[];
+  getFavoritesBarVisibility: () => Promise<FavoritesBarVisibility>;
+  hasRestorableSession: () => Promise<boolean>;
+  openDownloadsPage: () => void;
+  restoreLastSession: () => Promise<number>;
+  setFavoritesBarVisibility: (visibility: FavoritesBarVisibility) => Promise<FavoritesBarVisibility>;
   getThemeState: () => Promise<ThemeState>;
   setThemePreference: (preference: ThemePreference) => Promise<ThemeState>;
 }
@@ -70,6 +78,19 @@ export function registerIPCHandlers(
   ipcMain.handle("browser:closeActiveTab", async (event) => {
     await getController(event).tabManager.closeActiveTab();
   });
+  ipcMain.handle("browser:getFavoriteStatus", async (event, url: string) => {
+    if (!url || url.startsWith("about:") || isInternalPageUrl(url)) {
+      return { favoriteId: null, isFavorited: false };
+    }
+
+    const favorite = await getController(event).dataManager.favorites.getFavoriteByNormalizedUrl(
+      normalizeURL(url)
+    );
+    return {
+      favoriteId: favorite?.sync.id ?? null,
+      isFavorited: Boolean(favorite)
+    };
+  });
   ipcMain.handle("browser:addFavorite", async (event, input: AddFavoriteInput) => {
     const controller = getController(event);
     const title = input.title.trim();
@@ -88,7 +109,36 @@ export function registerIPCHandlers(
     });
     await controller.dataManager.favorites.upsertFavorite(favorite);
     controller.tabManager.reloadFavoritesPages();
+    controller.notifyFavoritesChanged();
     return favorite.sync.id;
+  });
+  ipcMain.handle("browser:toggleFavorite", async (event, input: AddFavoriteInput) => {
+    const controller = getController(event);
+    const url = input.url.trim();
+    const normalizedUrl = normalizeURL(url);
+    const existing = await controller.dataManager.favorites.getFavoriteByNormalizedUrl(normalizedUrl);
+
+    if (existing) {
+      await controller.dataManager.favorites.tombstoneFavorite(
+        existing.sync.id,
+        new Date().toISOString()
+      );
+      controller.tabManager.reloadFavoritesPages();
+      controller.notifyFavoritesChanged();
+      return { favoriteId: null, isFavorited: false };
+    }
+
+    const favorite = controller.dataManager.favorites.createFavorite({
+      favicon: input.favicon ?? null,
+      parentFolderId: input.parentFolderId ?? null,
+      sortOrder: Date.now(),
+      title: input.title.trim() || url,
+      url
+    });
+    await controller.dataManager.favorites.upsertFavorite(favorite);
+    controller.tabManager.reloadFavoritesPages();
+    controller.notifyFavoritesChanged();
+    return { favoriteId: favorite.sync.id, isFavorited: true };
   });
   ipcMain.handle("browser:createFavoriteFolder", async (event, input: CreateFavoriteFolderInput) => {
     const title = input.title.trim();
@@ -104,6 +154,7 @@ export function registerIPCHandlers(
     });
     await controller.dataManager.favorites.upsertFavoriteFolder(folder);
     controller.tabManager.reloadFavoritesPages();
+    controller.notifyFavoritesChanged();
     return {
       id: folder.sync.id,
       label: folder.title,
@@ -120,8 +171,33 @@ export function registerIPCHandlers(
       title: folder.title
     }));
   });
+  ipcMain.handle("browser:listFavoritesBarItems", async (event) => {
+    const controller = getController(event);
+    const [folders, favorites] = await Promise.all([
+      controller.dataManager.favorites.listFavoriteFolders(null),
+      controller.dataManager.favorites.listFavorites(null)
+    ]);
+    return [
+      ...folders.map((folder) => ({
+        id: folder.sync.id,
+        title: folder.title,
+        type: "folder" as const,
+        url: `${FAVORITES_PAGE_URL}?folder=${encodeURIComponent(folder.sync.id)}`
+      })),
+      ...favorites.map((favorite) => ({
+        favicon: favorite.favicon,
+        id: favorite.sync.id,
+        title: favorite.title || favorite.url,
+        type: "favorite" as const,
+        url: favorite.url
+      }))
+    ];
+  });
   ipcMain.handle("browser:openFavorites", (event) => {
     getController(event).tabManager.createTab(FAVORITES_PAGE_URL);
+  });
+  ipcMain.handle("browser:openDownloads", () => {
+    options.openDownloadsPage();
   });
   ipcMain.handle("browser:openHistory", (event) => {
     getController(event).tabManager.createTab(HISTORY_PAGE_URL);
@@ -129,6 +205,9 @@ export function registerIPCHandlers(
   ipcMain.handle("browser:openSettings", (event) => {
     getController(event).tabManager.createTab(SETTINGS_PAGE_URL);
   });
+  ipcMain.handle("browser:listDownloads", () => options.getDownloadEntries());
+  ipcMain.handle("browser:hasRestorableSession", () => options.hasRestorableSession());
+  ipcMain.handle("browser:restoreLastSession", () => options.restoreLastSession());
 
   ipcMain.handle("tab:create", async (event, url?: string) => {
     return getController(event).tabManager.createTab(url);
@@ -142,6 +221,9 @@ export function registerIPCHandlers(
   ipcMain.handle("tab:list", (event) => getController(event).tabManager.getSerializedTabs());
   ipcMain.handle("tab:sleep", async (event, id: string) => {
     await getController(event).sleepManager.softSleep(id);
+  });
+  ipcMain.handle("tab:setPinned", (event, id: string, pinned: boolean) => {
+    getController(event).tabManager.setPinned(id, pinned);
   });
   ipcMain.handle("tab:moveToNewWindow", async (event, id: string) => {
     await getController(event).moveTabToNewWindow(id);
@@ -213,6 +295,12 @@ export function registerIPCHandlers(
       }
 
       const menu = Menu.buildFromTemplate([
+        {
+          label: tab.pinned ? "Unpin Tab" : "Pin Tab",
+          click: () => {
+            controller.tabManager.setPinned(id, !tab.pinned);
+          }
+        },
         {
           label: "Move Tab to New Window",
           click: () => {
@@ -287,6 +375,14 @@ export function registerIPCHandlers(
       return;
     }
     getController(event).setTabStripPlacement(placement);
+  });
+  ipcMain.handle("layout:getFavoritesBarVisibility", () => options.getFavoritesBarVisibility());
+  ipcMain.handle("layout:setFavoritesBarVisibility", (_event, visibility: FavoritesBarVisibility) => {
+    if (!["always", "never"].includes(visibility)) {
+      return options.getFavoritesBarVisibility();
+    }
+
+    return options.setFavoritesBarVisibility(visibility);
   });
   ipcMain.handle("theme:getState", () => options.getThemeState());
   ipcMain.handle("theme:setPreference", (_event, preference: ThemePreference) => {

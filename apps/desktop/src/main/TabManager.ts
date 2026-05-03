@@ -6,9 +6,10 @@ import {
   WebContentsView
 } from "electron";
 import { EventEmitter } from "node:events";
+import type { OpenTabRecord } from "@seans-browser/browser-core";
 import { evaluateSleepState, normalizeURL, TabId } from "@seans-browser/browser-core";
 import { HistoryManager } from "./HistoryManager";
-import { FAVORITES_PAGE_URL } from "./InternalPages";
+import { DOWNLOADS_PAGE_URL, FAVORITES_PAGE_URL } from "./InternalPages";
 import { SessionManager } from "./SessionManager";
 import {
   DetachedTab,
@@ -88,6 +89,58 @@ export class TabManager extends EventEmitter {
     void this.setActiveTab(id);
     void view.webContents.loadURL(url);
     return id;
+  }
+
+  async restoreTabs(tabs: OpenTabRecord[], activeTabId: string | null): Promise<boolean> {
+    if (tabs.length === 0) {
+      return false;
+    }
+
+    const orderedTabs = [...tabs].sort((left, right) => left.position - right.position);
+    const restoredTabs = orderedTabs.map((savedTab) => {
+      const view = this.createView();
+      const record: TabRecord = {
+        id: savedTab.sync.id,
+        url: savedTab.url,
+        title: savedTab.title,
+        favicon: savedTab.favicon,
+        state: "awake",
+        lastActive: new Date(savedTab.lastActiveAt).getTime(),
+        snapshot: null,
+        savedScrollY: savedTab.savedScrollY,
+        pinned: savedTab.pinned,
+        view,
+        canGoBack: false,
+        canGoForward: false,
+        isLoading: true
+      };
+
+      this.tabs.set(record.id, record);
+      this.win.contentView.addChildView(view);
+      this.onPageViewAttached?.();
+      this.positionView(view);
+      view.setVisible(false);
+      this.attachWebContentsListeners(record.id, view);
+      view.webContents.once("did-finish-load", () => {
+        void view.webContents.executeJavaScript(`window.scrollTo(0, ${record.savedScrollY})`, true);
+      });
+      this.emit("tab:added", this.serializeTab(record));
+      return record;
+    });
+
+    const nextActiveTab = restoredTabs.find((tab) => tab.id === activeTabId) ?? restoredTabs[0];
+
+    for (const tab of restoredTabs) {
+      if (tab.id === nextActiveTab.id) {
+        continue;
+      }
+
+      void tab.view?.webContents.loadURL(tab.url);
+    }
+
+    await this.setActiveTab(nextActiveTab.id);
+    await nextActiveTab.view?.webContents.loadURL(nextActiveTab.url);
+    return true;
   }
 
   async setActiveTab(id: TabId): Promise<void> {
@@ -279,6 +332,26 @@ export class TabManager extends EventEmitter {
     }
   }
 
+  setPinned(id: TabId, pinned: boolean): void {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.pinned === pinned) {
+      return;
+    }
+
+    tab.pinned = pinned;
+    const reorderedTabs = this.getTabs().filter((candidate) => candidate.id !== id);
+    const pinnedCount = reorderedTabs.filter((candidate) => candidate.pinned).length;
+    reorderedTabs.splice(pinned ? pinnedCount : pinnedCount, 0, tab);
+
+    this.tabs.clear();
+    for (const orderedTab of reorderedTabs) {
+      this.tabs.set(orderedTab.id, orderedTab);
+    }
+
+    this.emit("tab:updated", this.serializeTab(tab));
+    this.emit("tab:reordered", this.getSerializedTabs());
+  }
+
   async switchToTabAtIndex(index: number): Promise<void> {
     const tab = this.getTabs()[index];
     if (tab) {
@@ -318,6 +391,12 @@ export class TabManager extends EventEmitter {
   reloadFavoritesPages(): void {
     for (const tab of this.tabs.values()) {
       this.reloadFavoritesPageIfNeeded(tab);
+    }
+  }
+
+  reloadDownloadsPages(): void {
+    for (const tab of this.tabs.values()) {
+      this.reloadDownloadsPageIfNeeded(tab);
     }
   }
 
@@ -476,6 +555,14 @@ export class TabManager extends EventEmitter {
 
   private reloadFavoritesPageIfNeeded(tab: TabRecord): void {
     if (!tab.view || !tab.url.startsWith(FAVORITES_PAGE_URL)) {
+      return;
+    }
+
+    tab.view.webContents.reloadIgnoringCache();
+  }
+
+  private reloadDownloadsPageIfNeeded(tab: TabRecord): void {
+    if (!tab.view || !tab.url.startsWith(DOWNLOADS_PAGE_URL)) {
       return;
     }
 

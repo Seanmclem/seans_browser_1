@@ -107,6 +107,7 @@ export type BrowserSettingKey =
   | "privacy.blockTrackers"
   | "privacy.blockAutoplayFullscreenAds"
   | "desktop.tabStripPlacement"
+  | "desktop.favoritesBarVisibility"
   | "mobile.mediaPlaybackPolicy";
 
 export interface BrowserSettingRecord extends SyncableRecord {
